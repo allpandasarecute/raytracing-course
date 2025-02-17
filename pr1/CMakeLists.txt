@@ -6,5 +6,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(TARGET_NAME "${PROJECT_NAME}")
 
-add_executable(${TARGET_NAME} src/main.cpp)
+add_executable(${TARGET_NAME})
+target_sources(${TARGET_NAME} PRIVATE src/main.cpp src/vec.cpp)
+
 target_include_directories(${TARGET_NAME} PUBLIC inc)
