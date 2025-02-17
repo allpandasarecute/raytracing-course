@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-SCRIPT=$(realpath "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-$SCRIPTPATH/build/pr1 $1 $2
+SCRIPTPATH=$(dirname "$(realpath "$0")")
+BUILDPATH="$SCRIPTPATH/build"
+$BUILDPATH/pr1 $1 $2

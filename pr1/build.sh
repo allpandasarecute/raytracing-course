@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-SCRIPT=$(realpath "$0")
-SCRIPTPATH=$(dirname "$SCRIPT")
-mkdir -p $SCRIPTPATH/build
-cmake -S $SCRIPTPATH -B $SCRIPTPATH/build 
-cmake --build $SCRIPTPATH/build 
+SCRIPTPATH=$(dirname "$(realpath "$0")")
+BUILDPATH="$SCRIPTPATH/build"
+mkdir -p $BUILDPATH
+cmake -S $SCRIPTPATH -B $BUILDPATH -DCMAKE_BUILD_TYPE=Release 
+cmake --build $BUILDPATH
