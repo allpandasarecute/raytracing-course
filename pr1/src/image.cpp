@@ -28,8 +28,11 @@ bool Image::save(string file) {
 		if (!output.is_open()) {
 			return false;
 		}
-		output.write((const char *)this->data.data(),
-					 this->data.size() * sizeof(Color));
+		for (const auto &c : data) {
+			output.put((std::uint8_t)glm::round(c.r * 255));
+			output.put((std::uint8_t)glm::round(c.g * 255));
+			output.put((std::uint8_t)glm::round(c.b * 255));
+		}
 	} catch (const std::exception &e) {
 		std::cout << e.what() << std::endl;
 		output.close();

@@ -16,6 +16,8 @@ target_sources(
         src/scene.cpp
         src/ray.cpp
         src/camera.cpp
+        src/object.cpp
+        src/quat.cpp
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE inc)
