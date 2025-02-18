@@ -9,7 +9,13 @@ set(TARGET_NAME "${PROJECT_NAME}")
 add_executable(${TARGET_NAME})
 target_sources(
     ${TARGET_NAME}
-    PRIVATE src/main.cpp src/color.cpp src/image.cpp src/scene.cpp src/ray.cpp
+    PRIVATE
+        src/main.cpp
+        src/color.cpp
+        src/image.cpp
+        src/scene.cpp
+        src/ray.cpp
+        src/camera.cpp
 )
 
 target_include_directories(${TARGET_NAME} PRIVATE inc)

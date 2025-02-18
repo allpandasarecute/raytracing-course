@@ -5,7 +5,7 @@
 
 class Object {
   public:
-	Object() = delete;
+	Object() = default;
 	Object(const Object &) = default;
 	~Object() = default;
 

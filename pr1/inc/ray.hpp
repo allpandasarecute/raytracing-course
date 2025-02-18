@@ -4,8 +4,10 @@
 
 class Ray {
   public:
-	Ray() = delete;
+	Ray();
+	Ray(const Ray &);
 	Ray(vec3 pos, vec3 dir);
+	~Ray() = default;
 
 	vec3 pos, dir;
 };

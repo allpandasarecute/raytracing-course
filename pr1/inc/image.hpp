@@ -4,6 +4,7 @@
 
 class Image {
   public:
+	Image();
 	Image(uint w, uint h);
 	~Image() = default;
 

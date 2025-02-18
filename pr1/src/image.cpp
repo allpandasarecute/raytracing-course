@@ -5,6 +5,9 @@
 #include <ios>
 #include <iostream>
 
+Image::Image() : data(vector<Color>()), w(0), h(0) {
+}
+
 Image::Image(uint w, uint h) : data(vector<Color>(w * h)), w(w), h(h) {
 }
 
