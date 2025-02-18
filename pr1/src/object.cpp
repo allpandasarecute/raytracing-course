@@ -1,5 +1,5 @@
 #include "object.hpp"
-#include <optional>
+#include "types.hpp"
 
 #define swapIfMin(x, y)                                                        \
 	{                                                                          \
@@ -80,15 +80,16 @@ intersect Box::intersection(Ray ray) const {
 		Plane({0.f, 0.f, -this->dim.z / 2.f}, {0.f, 0.f, 1.f}, this->color)
 			.intersection(newRay);
 
-	if (!(tx1.has_value() && ty1.has_value() && tz1.has_value())) {
-		return std::nullopt;
-	}
 	swapIfMin(tx1, tx2);
 	swapIfMin(ty1, ty2);
 	swapIfMin(tz1, tz2);
 
-	float t1 = glm::max(glm::max(tx1.value(), ty1.value()), tz1.value());
-	float t2 = glm::min(glm::min(tx2.value(), ty2.value()), tz2.value());
+	float t1 =
+		glm::max(glm::max(tx1.value_or(FLOAT_MIN), ty1.value_or(FLOAT_MIN)),
+				 tz1.value_or(FLOAT_MIN));
+	float t2 =
+		glm::min(glm::min(tx2.value_or(FLOAT_MAX), ty2.value_or(FLOAT_MAX)),
+				 tz2.value_or(FLOAT_MAX));
 	if (t1 > t2 || t2 < 0) {
 		return std::nullopt;
 	}
