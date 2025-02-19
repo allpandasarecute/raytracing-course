@@ -3,6 +3,7 @@
 #include "quat.hpp"
 #include "ray.hpp"
 #include "types.hpp"
+#include <memory>
 
 class Object {
   public:
@@ -11,16 +12,21 @@ class Object {
 	virtual ~Object() = default;
 
 	virtual intersect intersection(Ray ray) const = 0;
+	virtual Color c() const = 0;
 };
+
+typedef Object *obj;
+using std::make_shared;
 
 class Ellips : public Object {
   public:
 	Ellips();
 	Ellips(const Ellips &);
 	Ellips(vec3 pos, vec3 r, Color color);
-	~Ellips() override = default;
+	virtual ~Ellips() = default;
 
 	intersect intersection(Ray ray) const override;
+	Color c() const override;
 
 	vec3 pos, r;
 	Color color;
@@ -31,9 +37,10 @@ class Box : public Object {
 	Box();
 	Box(const Box &);
 	Box(vec3 pos, vec3 dim, Quat rot, Color color);
-	~Box() override = default;
+	virtual ~Box() = default;
 
 	intersect intersection(Ray ray) const override;
+	Color c() const override;
 
 	vec3 pos, dim;
 	Quat rot;
@@ -45,9 +52,10 @@ class Plane : public Object {
 	Plane();
 	Plane(const Plane &);
 	Plane(vec3 pos, vec3 norm, Color color);
-	~Plane() override = default;
+	virtual ~Plane() = default;
 
 	intersect intersection(Ray ray) const override;
+	Color c() const override;
 
 	vec3 pos, norm;
 	Color color;

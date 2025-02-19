@@ -1,5 +1,6 @@
 #include "object.hpp"
 #include "types.hpp"
+#include <iostream>
 
 #define swapIfMin(x, y)                                                        \
 	{                                                                          \
@@ -9,7 +10,7 @@
 
 // Ellips
 
-Ellips::Ellips() : pos(vec3(0.f)), r(vec3(1.f)), color(Color(0, 0, 0)) {
+Ellips::Ellips() : pos(vec3(0.f)), r(vec3(1.f)), color(Color()) {
 }
 
 Ellips::Ellips(const Ellips &arg) : pos(arg.pos), r(arg.r), color(arg.color) {
@@ -40,11 +41,15 @@ intersect Ellips::intersection(Ray ray) const {
 	return std::nullopt;
 };
 
+Color Ellips::c() const {
+	return this->color;
+}
+
 // Box
 
 Box::Box()
 	: pos(vec3(0.f)), dim(vec3(1.f)), rot(Quat({0.f, 0.f, 0.f}, 1.f)),
-	  color(Color(0.f, 0.f, 0.f)) {
+	  color(Color()) {
 }
 
 Box::Box(const Box &arg)
@@ -99,10 +104,13 @@ intersect Box::intersection(Ray ray) const {
 	return intersect(t2);
 };
 
+Color Box::c() const {
+	return this->color;
+}
+
 // Plane
 
-Plane::Plane()
-	: pos(vec3(0.f)), norm(vec3(0.f, 1.f, 0.f)), color(Color(0, 0, 0)) {
+Plane::Plane() : pos(vec3(0.f)), norm(vec3(0.f, 1.f, 0.f)), color(Color()) {
 }
 
 Plane::Plane(const Plane &arg)
@@ -115,8 +123,10 @@ Plane::Plane(vec3 pos, vec3 norm, Color color)
 
 intersect Plane::intersection(Ray ray) const {
 	float k = dot(this->norm, ray.dir);
-	return k == 0.f ? std::nullopt
-					: intersect((dot(this->norm, this->pos) -
-								 dot(this->norm, ray.pos)) /
-								k);
+	float step = dot(this->norm, this->pos) - dot(this->norm, ray.pos);
+	return (k == 0.f || step / k < 0) ? std::nullopt : intersect(step / k);
+}
+
+Color Plane::c() const {
+	return this->color;
 }

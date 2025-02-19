@@ -12,7 +12,6 @@ target_sources(
     PRIVATE
         src/main.cpp
         src/color.cpp
-        src/image.cpp
         src/scene.cpp
         src/ray.cpp
         src/camera.cpp

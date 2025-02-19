@@ -10,5 +10,6 @@ class Camera {
 	Camera(const Camera &);
 	~Camera() = default;
 
-	vec3 pos, right, up, forward, fovx, fovy;
+	vec3 pos, right, up, forward;
+	float fovx, fovy;
 };

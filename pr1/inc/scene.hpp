@@ -11,7 +11,18 @@ class Scene {
 	Scene(string file);
 	~Scene() = default;
 
-	vector<Object> objs;
+	Color &operator[](ind coord);
+
+	void generateImage();
+	bool saveImage(string file);
+
+	Ray generateRay(ind coord);
+	optional<pair<float, Color>> intersection(Ray ray);
+	Color raytrace(Ray ray);
+
+	vector<Color> data;
+	uint w, h;
+	vector<obj> objs;
 	Camera cam;
 	Color bg;
 };

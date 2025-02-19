@@ -13,7 +13,7 @@ const float FLOAT_MIN = std::numeric_limits<float>::min();
 
 using glm::dot, glm::cross;
 using glm::vec3, glm::vec4;
-using std::string, std::vector;
+using std::string, std::vector, std::optional, std::pair;
 
 typedef std::uint8_t byte;
 typedef unsigned int uint;
