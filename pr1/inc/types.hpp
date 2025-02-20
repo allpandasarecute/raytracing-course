@@ -8,8 +8,8 @@
 #include <vector>
 
 
-const float FLOAT_MAX = std::numeric_limits<float>::max();
-const float FLOAT_MIN = std::numeric_limits<float>::min();
+const float FLOAT_MAX = std::numeric_limits<float>::infinity();
+const float FLOAT_MIN = -std::numeric_limits<float>::infinity();
 
 using glm::dot, glm::cross;
 using glm::vec3, glm::vec4;

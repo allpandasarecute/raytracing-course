@@ -15,7 +15,7 @@ int main() {
 				   {0.f, 0.f, -1.f}, 1.5708, {s.w, s.h});
 	Plane p = Plane({0.f, 0.f, 0.f}, {0.f, 1.f, 0.f}, {0.f, 1.f, 0.f});
 	Ellips e = Ellips({-1.f, 1.f, -5.f}, {2.f, 2.f, 2.f}, {1.f, 0.f, 0.f});
-	Box b = Box({1.f, 2.5f, -3.f}, {0.5f, 0.5f, 0.5f},
+	Box b = Box({1.5f, 2.5f, -3.f}, {0.5f, 0.5f, 0.5f},
 				{{0.31246f, 0.15623f, 0.15623f}, 0.92388f}, {1.f, 1.f, 0.f});
 	s.objs.push_back(&p);
 	s.objs.push_back(&e);
@@ -23,6 +23,6 @@ int main() {
 	s.data.resize(s.w * s.h);
 	std::cout << s.objs.size() << std::endl;
 	s.generateImage();
-	s.saveImage("test.ppm");
+	s.saveImage("test2.ppm");
 	return 0;
 }

@@ -60,29 +60,28 @@ Box::Box(vec3 pos, vec3 dim, Quat rot, Color color)
 	: pos(pos), dim(dim), rot(rot), color(color) {
 }
 
-intersect Box::intersection(Ray ray) const {
-	vec3 newPos = ray.pos - this->pos;
-	newPos = (this->rot.conj() * Quat(newPos, 0.f) * this->rot).v;
-	vec3 newDir = (this->rot.conj() * Quat(ray.dir, 0.f) * this->rot).v;
-	Ray newRay(newPos, newDir);
+int counter = 0;
 
-	intersect tx1 =
-		Plane({this->dim.x / 2.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, this->color)
-			.intersection(newRay);
+intersect Box::intersection(Ray ray) const {
+	vec3 newPos =
+		(this->rot.conj() * Quat(ray.pos - this->pos, 0.f) * this->rot).v;
+	vec3 newDir = (this->rot.conj() * Quat(ray.dir, 0.f) * this->rot).v;
+	Ray newRay = Ray(newPos, newDir);
+
+	intersect tx1 = Plane({this->dim.x, 0.f, 0.f}, {1.f, 0.f, 0.f}, this->color)
+						.intersection(newRay);
 	intersect tx2 =
-		Plane({-this->dim.x / 2.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, this->color)
+		Plane({-this->dim.x, 0.f, 0.f}, {-1.f, 0.f, 0.f}, this->color)
 			.intersection(newRay);
-	intersect ty1 =
-		Plane({0.f, this->dim.y / 2.f, 0.f}, {0.f, 1.f, 0.f}, this->color)
-			.intersection(newRay);
+	intersect ty1 = Plane({0.f, this->dim.y, 0.f}, {0.f, 1.f, 0.f}, this->color)
+						.intersection(newRay);
 	intersect ty2 =
-		Plane({0.f, -this->dim.y / 2.f, 0.f}, {0.f, 1.f, 0.f}, this->color)
+		Plane({0.f, -this->dim.y, 0.f}, {0.f, -1.f, 0.f}, this->color)
 			.intersection(newRay);
-	intersect tz1 =
-		Plane({0.f, 0.f, this->dim.z / 2.f}, {0.f, 0.f, 1.f}, this->color)
-			.intersection(newRay);
+	intersect tz1 = Plane({0.f, 0.f, this->dim.z}, {0.f, 0.f, 1.f}, this->color)
+						.intersection(newRay);
 	intersect tz2 =
-		Plane({0.f, 0.f, -this->dim.z / 2.f}, {0.f, 0.f, 1.f}, this->color)
+		Plane({0.f, 0.f, -this->dim.z}, {0.f, 0.f, -1.f}, this->color)
 			.intersection(newRay);
 
 	swapIfMin(tx1, tx2);
@@ -123,8 +122,9 @@ Plane::Plane(vec3 pos, vec3 norm, Color color)
 
 intersect Plane::intersection(Ray ray) const {
 	float k = dot(this->norm, ray.dir);
-	float step = dot(this->norm, this->pos) - dot(this->norm, ray.pos);
-	return (k == 0.f || step / k < 0) ? std::nullopt : intersect(step / k);
+	vec3 newPos = ray.pos - this->pos;
+	float step = -dot(this->norm, newPos);
+	return (k == 0.f) ? std::nullopt : intersect(step / k);
 }
 
 Color Plane::c() const {

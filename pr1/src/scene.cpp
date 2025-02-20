@@ -51,8 +51,8 @@ bool Scene::saveImage(string file) {
 }
 
 Ray Scene::generateRay(ind coord) {
-	float newX = (2.f * coord.first / this->w - 1) * this->cam.fovx + 0.5f;
-	float newY = (2.f * coord.second / this->h - 1) * this->cam.fovy + 0.5f;
+	float newX = (2.f * (coord.first + 0.5f) / this->w - 1) * this->cam.fovx;
+	float newY = -(2.f * (coord.second + 0.5f) / this->h - 1) * this->cam.fovy;
 	return Ray(this->cam.pos,
 			   glm::normalize(newX * this->cam.right + newY * this->cam.up +
 							  this->cam.forward));
@@ -63,7 +63,7 @@ optional<pair<float, Color>> Scene::intersection(Ray ray) {
 	intersect t;
 	for (const obj &o : this->objs) {
 		t = o->intersection(ray);
-		if (t.has_value()) {
+		if (t.has_value() && t.value() > 0) {
 			if (!ans.has_value() || (ans.value().first > t.value())) {
 				ans = optional(std::make_pair(t.value(), o->c()));
 			}
