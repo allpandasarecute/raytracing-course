@@ -7,7 +7,7 @@
 class Scene {
   public:
 	Scene();
-	Scene(const Scene &);
+	Scene(const Scene &) = delete;
 	Scene(string file);
 	~Scene() = default;
 
@@ -17,7 +17,7 @@ class Scene {
 	bool saveImage(string file);
 
 	Ray generateRay(ind coord);
-	optional<pair<float, Color>> intersection(Ray ray);
+	optional<pair<float, Color>> intersect(Ray ray);
 	Color raytrace(Ray ray);
 
 	vector<Color> data;

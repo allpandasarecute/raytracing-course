@@ -1,4 +1,5 @@
 #pragma once
+#include "types.hpp"
 
 #pragma pack(push, 1)
 class Color {
@@ -8,6 +9,6 @@ class Color {
 	Color(float r, float g, float b);
 	~Color() = default;
 
-	float r, g, b;
+	byte r, g, b;
 };
 #pragma pack(pop)

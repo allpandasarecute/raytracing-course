@@ -15,3 +15,4 @@ class Quat {
 };
 
 Quat operator*(const Quat &a, const Quat &b);
+vec3 rotation(vec3 v, Quat rot);

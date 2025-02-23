@@ -17,3 +17,7 @@ Quat operator*(const Quat &a, const Quat &b) {
 	return Quat(a.w * b.v + b.w * a.v + cross(a.v, b.v),
 				a.w * b.w - dot(a.v, b.v));
 }
+
+vec3 rotation(vec3 v, Quat rot) {
+	return (rot * Quat(v, 0.f) * rot.conj()).v;
+}

@@ -18,4 +18,4 @@ using std::string, std::vector, std::optional, std::pair;
 typedef std::uint8_t byte;
 typedef unsigned int uint;
 typedef std::pair<uint, uint> ind;
-typedef std::optional<float> intersect;
+typedef std::optional<float> intersection;
