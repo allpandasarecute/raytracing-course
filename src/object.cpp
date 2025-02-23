@@ -1,6 +1,7 @@
 #include "object.hpp"
 #include "quat.hpp"
 #include "types.hpp"
+#include <iostream>
 #include <optional>
 
 #define swapIfMin(x, y)                                                        \
@@ -34,8 +35,8 @@ intersection Object::intersect(Ray ray) const {
 }
 
 intersection intersectEllips(const Object &o, Ray ray) {
-	vec3 newPos = rotation((ray.pos - o.pos) / o.dim, o.rot.conj());
-	vec3 newDir = rotation(ray.dir / o.dim, o.rot.conj());
+	vec3 newPos = rotation((ray.pos - o.pos), o.rot.conj()) / o.dim;
+	vec3 newDir = rotation(ray.dir, o.rot.conj()) / o.dim;
 	float a = dot(newDir, newDir);
 	float b = 2 * dot(newPos, newDir);
 	float c = dot(newPos, newPos) - 1;
