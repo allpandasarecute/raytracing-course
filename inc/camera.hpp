@@ -6,7 +6,7 @@ class Camera {
   public:
 	Camera();
 	Camera(vec3 pos, vec3 right, vec3 up, vec3 forward, float fovx,
-		   ind imageSize);
+		   uvec2 imageSize);
 	Camera(const Camera &);
 	~Camera() = default;
 

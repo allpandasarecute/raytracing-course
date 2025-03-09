@@ -10,8 +10,7 @@ Camera::Camera()
 Camera::Camera(vec3 pos, vec3 right, vec3 up, vec3 forward, float fovx,
 			   ind imageSize)
 	: pos(pos), right(right), up(up), forward(forward),
-	  fovx(glm::tan(fovx / 2.f)),
-	  fovy(this->fovx * imageSize.second / imageSize.first) {
+	  fovx(glm::tan(fovx / 2.f)), fovy(this->fovx * imageSize.y / imageSize.x) {
 }
 
 Camera::Camera(const Camera &arg)

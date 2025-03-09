@@ -1,6 +1,7 @@
 #pragma once
 #include "camera.hpp"
 #include "color.hpp"
+#include "light.hpp"
 #include "object.hpp"
 #include "types.hpp"
 
@@ -26,4 +27,6 @@ class Scene {
 	Camera cam;
 	Color bg;
 	uint raydepth;
+	vec3 amb;
+	vector<lght> lghts;
 };

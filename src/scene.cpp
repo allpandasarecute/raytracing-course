@@ -11,7 +11,7 @@
 
 Scene::Scene()
 	: data(vector<Color>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
-	  bg(Color()), raydepth(1) {
+	  bg(Color()), raydepth(1), amb({0.f, 0.f, 0.f}) {
 }
 
 Scene::Scene(string file) {
@@ -21,7 +21,9 @@ Scene::Scene(string file) {
 		string command;
 		float x, y, z, w;
 		bool isLastObjPushed = true;
+		bool isLastLightPushed = true;
 		obj prim;
+		lght light;
 		while (input >> command) {
 			if (command == "DIMENSIONS") {
 				input >> this->w >> this->h;
@@ -82,11 +84,38 @@ Scene::Scene(string file) {
 				prim->mat = Material::Dielectric;
 			} else if (command == "IOR") {
 				input >> prim->ior;
+			} else if (command == "AMBIENT_LIGHT") {
+				input >> x >> y >> z;
+				this->amb = {x, y, z};
+			} else if (command == "NEW_LIGHT") {
+				if (!isLastLightPushed) {
+					this->lghts.push_back(std::move(light));
+					isLastLightPushed = true;
+				}
+				light = std::unique_ptr<Light>(new Light());
+				isLastLightPushed = false;
+			} else if (command == "LIGHT_INTENSITY") {
+				input >> x >> y >> z;
+				light->c = {x, y, z};
+			} else if (command == "LIGHT_DIRECTION") {
+				input >> x >> y >> z;
+				light->type = LightType::Dir;
+				light->dir = {x, y, z};
+			} else if (command == "LIGHT_POSITION") {
+				input >> x >> y >> z;
+				light->pos = {x, y, z};
+			} else if (command == "LIGHT_ATTENUATION") {
+				input >> x >> y >> z;
+				light->att = {x, y, z};
 			}
 		}
 		if (!isLastObjPushed) {
 			this->objs.push_back(std::move(prim));
 			isLastObjPushed = true;
+		}
+		if (!isLastLightPushed) {
+			this->lghts.push_back(std::move(light));
+			isLastLightPushed = true;
 		}
 	} catch (const std::exception &e) {
 		std::cout << e.what() << std::endl;
@@ -118,8 +147,8 @@ bool Scene::saveImage(string file) {
 }
 
 Ray Scene::generateRay(ind coord) {
-	float newX = (2.f * (coord.first + 0.5f) / this->w - 1) * this->cam.fovx;
-	float newY = -(2.f * (coord.second + 0.5f) / this->h - 1) * this->cam.fovy;
+	float newX = (2.f * (coord.x + 0.5f) / this->w - 1) * this->cam.fovx;
+	float newY = -(2.f * (coord.y + 0.5f) / this->h - 1) * this->cam.fovy;
 	return Ray(this->cam.pos,
 			   glm::normalize(newX * this->cam.right + newY * this->cam.up +
 							  this->cam.forward));
