@@ -5,7 +5,7 @@
 class Color {
   public:
 	Color();
-	Color(const Color &);
+	Color(const Color &) = default;
 	Color(float r, float g, float b);
 	~Color() = default;
 

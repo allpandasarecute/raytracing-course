@@ -1,7 +1,6 @@
 #include "object.hpp"
 #include "quat.hpp"
 #include "types.hpp"
-#include <iostream>
 #include <optional>
 
 #define swapIfMin(x, y)                                                        \
@@ -12,11 +11,12 @@
 
 Object::Object()
 	: s(Shape::None), pos(vec3(0.f)), dim(vec3(1.f)), rot({vec3(0.f), 1.f}),
-	  color(Color()) {
+	  color(Color()), mat(Material::Diffuse), ior(0.f) {
 }
 
-Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color)
-	: s(s), pos(pos), dim(dim), rot(rot), color(color) {
+Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color, Material mat,
+			   float ior)
+	: s(s), pos(pos), dim(dim), rot(rot), color(color), mat(mat), ior(ior) {
 }
 
 intersection Object::intersect(Ray ray) const {
@@ -69,22 +69,22 @@ intersection intersectBox(const Object &o, Ray ray) {
 	Ray newRay = Ray(newPos, newDir);
 
 	intersection tx1 = Object(Shape::Plane, {o.dim.x, 0.f, 0.f},
-							  {1.f, 0.f, 0.f}, Quat(), o.color)
+							  {1.f, 0.f, 0.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tx2 = Object(Shape::Plane, {-o.dim.x, 0.f, 0.f},
-							  {-1.f, 0.f, 0.f}, Quat(), o.color)
+							  {-1.f, 0.f, 0.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection ty1 = Object(Shape::Plane, {0.f, o.dim.y, 0.f},
-							  {0.f, 1.f, 0.f}, Quat(), o.color)
+							  {0.f, 1.f, 0.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection ty2 = Object(Shape::Plane, {0.f, -o.dim.y, 0.f},
-							  {0.f, -1.f, 0.f}, Quat(), o.color)
+							  {0.f, -1.f, 0.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tz1 = Object(Shape::Plane, {0.f, 0.f, o.dim.z},
-							  {0.f, 0.f, 1.f}, Quat(), o.color)
+							  {0.f, 0.f, 1.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tz2 = Object(Shape::Plane, {0.f, 0.f, -o.dim.z},
-							  {0.f, 0.f, -1.f}, Quat(), o.color)
+							  {0.f, 0.f, -1.f}, Quat(), o.color, o.mat, o.ior)
 						   .intersect(newRay);
 
 	swapIfMin(tx1, tx2);

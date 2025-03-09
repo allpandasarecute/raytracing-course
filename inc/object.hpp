@@ -12,12 +12,19 @@ enum class Shape {
 	Box
 };
 
+enum class Material {
+	Diffuse,
+	Metallic,
+	Dielectric
+};
+
 class Object {
   public:
 	Object();
 	Object(const Object &) = default;
 	~Object() = default;
-	Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color);
+	Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color, Material mat,
+		   float ior);
 
 	intersection intersect(Ray ray) const;
 
@@ -25,6 +32,8 @@ class Object {
 	vec3 pos, dim; // for Plane dim == norm
 	Quat rot;
 	Color color;
+	Material mat;
+	float ior;
 };
 
 typedef std::unique_ptr<Object> obj;

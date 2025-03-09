@@ -25,4 +25,5 @@ class Scene {
 	vector<obj> objs;
 	Camera cam;
 	Color bg;
+	uint raydepth;
 };

@@ -11,7 +11,7 @@
 
 Scene::Scene()
 	: data(vector<Color>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
-	  bg(Color()) {
+	  bg(Color()), raydepth(1) {
 }
 
 Scene::Scene(string file) {
@@ -74,6 +74,14 @@ Scene::Scene(string file) {
 			} else if (command == "ROTATION") {
 				input >> x >> y >> z >> w;
 				prim->rot = Quat({x, y, z}, w);
+			} else if (command == "RAY_DEPTH") {
+				input >> this->raydepth;
+			} else if (command == "METALLIC") {
+				prim->mat = Material::Metallic;
+			} else if (command == "DIELECTRIC") {
+				prim->mat = Material::Dielectric;
+			} else if (command == "IOR") {
+				input >> prim->ior;
 			}
 		}
 		if (!isLastObjPushed) {
