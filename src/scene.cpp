@@ -11,7 +11,9 @@
 #include <string>
 
 #define colorToBytes(c) ((byte)glm::round(c * 255))
-#define normColor(c) (c / std::max(std::max(c.r, c.g), c.b))
+#define clampColor(c)                                                          \
+	(color(glm::clamp(c.r, 0.f, 1.f), glm::clamp(c.g, 0.f, 1.f),               \
+		   glm::clamp(c.b, 0.f, 1.f)))
 
 Scene::Scene()
 	: data(vector<vec3>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
@@ -190,23 +192,22 @@ color Scene::raytrace(Ray ray) {
 
 	for (auto &l : this->lghts) {
 		if (l->type == LightType::Dir && ((d = dot(objNorm, l->dir)) < 0)) {
-			ansColor -= objColor * d;
+			ansColor -= objColor * d * l->c;
 		} else if (l->type == LightType::Dot &&
 				   ((d = dot(objNorm, whereInter - l->pos)) <
 					0)) { // LightType::Dot
-			ansColor -=
-				objColor * d * l->intensity(glm::length(whereInter - l->pos));
+			ansColor -= objColor * d *
+						l->intensity(glm::length(whereInter - l->pos)) * l->c;
 		}
 	}
-	// return ansColor;
-	return std::get<1>(i.value());
+	return clampColor(ansColor);
+	// return std::get<1>(i.value());
 }
 
 void Scene::generateImage() {
 	for (uint y = 0; y < this->h; ++y) {
 		for (uint x = 0; x < this->w; ++x) {
-			data[w * y + x] =
-				normColor(this->raytrace(this->generateRay({x, y})));
+			data[w * y + x] = this->raytrace(this->generateRay({x, y}));
 		}
 	}
 }
