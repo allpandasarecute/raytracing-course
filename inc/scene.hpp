@@ -1,6 +1,5 @@
 #pragma once
 #include "camera.hpp"
-#include "color.hpp"
 #include "light.hpp"
 #include "object.hpp"
 #include "types.hpp"
@@ -12,20 +11,18 @@ class Scene {
 	Scene(string file);
 	~Scene() = default;
 
-	Color &operator[](ind coord);
-
 	void generateImage();
 	bool saveImage(string file);
 
 	Ray generateRay(ind coord);
-	optional<pair<float, Color>> intersect(Ray ray);
-	Color raytrace(Ray ray);
+	optional<tuple<float, color, vec3>> intersect(Ray ray);
+	color raytrace(Ray ray);
 
-	vector<Color> data;
+	vector<color> data;
 	uint w, h;
 	vector<obj> objs;
 	Camera cam;
-	Color bg;
+	color bg;
 	uint raydepth;
 	vec3 amb;
 	vector<lght> lghts;

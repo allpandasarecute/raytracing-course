@@ -11,12 +11,12 @@
 
 Object::Object()
 	: s(Shape::None), pos(vec3(0.f)), dim(vec3(1.f)), rot({vec3(0.f), 1.f}),
-	  color(Color()), mat(Material::Diffuse), ior(0.f) {
+	  c(color()), mat(Material::Diffuse), ior(0.f) {
 }
 
-Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color, Material mat,
+Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, color c, Material mat,
 			   float ior)
-	: s(s), pos(pos), dim(dim), rot(rot), color(color), mat(mat), ior(ior) {
+	: s(s), pos(pos), dim(dim), rot(rot), c(c), mat(mat), ior(ior) {
 }
 
 intersection Object::intersect(Ray ray) const {
@@ -32,6 +32,20 @@ intersection Object::intersect(Ray ray) const {
 		break;
 	};
 	return std::nullopt;
+}
+
+vec3 Object::norm(vec3 pos) const {
+	switch (this->s) {
+	case Shape::Plane:
+		return normPlane(*this, pos);
+		break;
+	case Shape::Ellips:
+		return normEllips(*this, pos);
+		break;
+	case Shape::Box:
+		return normBox(*this, pos);
+		break;
+	};
 }
 
 intersection intersectEllips(const Object &o, Ray ray) {
@@ -69,22 +83,22 @@ intersection intersectBox(const Object &o, Ray ray) {
 	Ray newRay = Ray(newPos, newDir);
 
 	intersection tx1 = Object(Shape::Plane, {o.dim.x, 0.f, 0.f},
-							  {1.f, 0.f, 0.f}, Quat(), o.color, o.mat, o.ior)
+							  {1.f, 0.f, 0.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tx2 = Object(Shape::Plane, {-o.dim.x, 0.f, 0.f},
-							  {-1.f, 0.f, 0.f}, Quat(), o.color, o.mat, o.ior)
+							  {-1.f, 0.f, 0.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection ty1 = Object(Shape::Plane, {0.f, o.dim.y, 0.f},
-							  {0.f, 1.f, 0.f}, Quat(), o.color, o.mat, o.ior)
+							  {0.f, 1.f, 0.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection ty2 = Object(Shape::Plane, {0.f, -o.dim.y, 0.f},
-							  {0.f, -1.f, 0.f}, Quat(), o.color, o.mat, o.ior)
+							  {0.f, -1.f, 0.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tz1 = Object(Shape::Plane, {0.f, 0.f, o.dim.z},
-							  {0.f, 0.f, 1.f}, Quat(), o.color, o.mat, o.ior)
+							  {0.f, 0.f, 1.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 	intersection tz2 = Object(Shape::Plane, {0.f, 0.f, -o.dim.z},
-							  {0.f, 0.f, -1.f}, Quat(), o.color, o.mat, o.ior)
+							  {0.f, 0.f, -1.f}, Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 
 	swapIfMin(tx1, tx2);
@@ -104,4 +118,27 @@ intersection intersectBox(const Object &o, Ray ray) {
 		return intersection(t1);
 	}
 	return intersection(t2);
+}
+
+vec3 normPlane(const Object &o, vec3 pos) {
+	return o.dim;
+}
+
+
+vec3 normBox(const Object &o, vec3 pos) {
+	vec3 newPos = rotation(pos - o.pos, o.rot.conj()) / o.dim;
+	vec3 ans;
+	if (glm::abs(newPos.x) == 1.f) {
+		ans = {newPos.x, 0.f, 0.f};
+	} else if (glm::abs(newPos.y) == 1.f) {
+		ans = {0.f, newPos.y, 0.f};
+	} else {
+		ans = {0.f, 0.f, newPos.z};
+	};
+	return rotation(ans, o.rot);
+}
+
+vec3 normEllips(const Object &o, vec3 pos) {
+	vec3 newPos = rotation(pos - o.pos, o.rot.conj()) / o.dim;
+	return rotation(glm::normalize(newPos / o.dim), o.rot);
 }

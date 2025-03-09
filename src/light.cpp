@@ -8,3 +8,7 @@ Light::Light()
 Light::Light(LightType type, vec3 pos, vec3 dir, vec3 c, vec3 att)
 	: type(type), pos(pos), dir(dir), c(c), att(att) {
 }
+
+float Light::intensity(float r) {
+	return 1.f / (att.x + att.y * r + att.z * r * r);
+}

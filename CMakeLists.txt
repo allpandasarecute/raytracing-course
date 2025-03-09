@@ -11,7 +11,6 @@ target_sources(
     ${TARGET_NAME}
     PRIVATE
         src/main.cpp
-        src/color.cpp
         src/scene.cpp
         src/ray.cpp
         src/camera.cpp

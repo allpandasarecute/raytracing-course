@@ -1,5 +1,6 @@
 #include "scene.hpp"
-#include "glm/geometric.hpp"
+#include "glm/glm.hpp"
+#include "light.hpp"
 #include "object.hpp"
 #include <exception>
 #include <fstream>
@@ -9,9 +10,12 @@
 #include <optional>
 #include <string>
 
+#define colorToBytes(c) ((byte)glm::round(c * 255))
+#define normColor(c) (c / std::max(std::max(c.r, c.g), c.b))
+
 Scene::Scene()
-	: data(vector<Color>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
-	  bg(Color()), raydepth(1), amb({0.f, 0.f, 0.f}) {
+	: data(vector<vec3>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
+	  bg(color()), raydepth(1), amb({0.f, 0.f, 0.f}) {
 }
 
 Scene::Scene(string file) {
@@ -30,7 +34,7 @@ Scene::Scene(string file) {
 				this->data.resize(this->w * this->h);
 			} else if (command == "BG_COLOR") {
 				input >> x >> y >> z;
-				this->bg = Color(x, y, z);
+				this->bg = color(x, y, z);
 			} else if (command == "CAMERA_POSITION") {
 				input >> x >> y >> z;
 				this->cam.pos = {x, y, z};
@@ -72,7 +76,7 @@ Scene::Scene(string file) {
 				prim->pos = {x, y, z};
 			} else if (command == "COLOR") {
 				input >> x >> y >> z;
-				prim->color = Color(x, y, z);
+				prim->c = color(x, y, z);
 			} else if (command == "ROTATION") {
 				input >> x >> y >> z >> w;
 				prim->rot = Quat({x, y, z}, w);
@@ -96,7 +100,7 @@ Scene::Scene(string file) {
 				isLastLightPushed = false;
 			} else if (command == "LIGHT_INTENSITY") {
 				input >> x >> y >> z;
-				light->c = {x, y, z};
+				light->c = color(x, y, z);
 			} else if (command == "LIGHT_DIRECTION") {
 				input >> x >> y >> z;
 				light->type = LightType::Dir;
@@ -135,8 +139,10 @@ bool Scene::saveImage(string file) {
 			   << std::to_string(this->w) << ' ' + std::to_string(this->h)
 			   << '\n'
 			   << "255" << '\n';
-		output.write((const char *)this->data.data(),
-					 this->data.size() * sizeof(Color));
+		for (auto &i : this->data) {
+			output << colorToBytes(i.r) << colorToBytes(i.g)
+				   << colorToBytes(i.b);
+		}
 		output.close();
 	} catch (const std::exception &e) {
 		std::cout << e.what() << std::endl;
@@ -154,29 +160,53 @@ Ray Scene::generateRay(ind coord) {
 							  this->cam.forward));
 }
 
-optional<pair<float, Color>> Scene::intersect(Ray ray) {
-	optional<pair<float, Color>> ans = std::nullopt;
+optional<tuple<float, color, vec3>> Scene::intersect(Ray ray) {
+	optional<tuple<float, color, vec3>> ans = std::nullopt;
 	intersection t;
 	for (const obj &o : this->objs) {
 		t = o->intersect(ray);
 		if (t.has_value() && t.value() > 0) {
-			if (!ans.has_value() || (ans.value().first > t.value())) {
-				ans = optional(std::make_pair(t.value(), o->color));
+			if (!ans.has_value() || (std::get<0>(ans.value()) > t.value())) {
+				ans = optional(std::make_tuple(
+					t.value(), o->c, o->norm(ray.pos + ray.dir * t.value())));
 			}
 		}
 	}
 	return ans;
 }
 
-Color Scene::raytrace(Ray ray) {
-	optional<pair<float, Color>> i = this->intersect(ray);
-	return i.has_value() ? i.value().second : this->bg;
+color Scene::raytrace(Ray ray) {
+	auto i = this->intersect(ray);
+	if (!i.has_value()) {
+		return this->bg;
+	}
+
+	color objColor = std::get<1>(i.value());
+	vec3 objNorm = std::get<2>(i.value());
+	vec3 whereInter = ray.pos + ray.dir * std::get<0>(i.value());
+
+	color ansColor = objColor * this->amb;
+	float d;
+
+	for (auto &l : this->lghts) {
+		if (l->type == LightType::Dir && ((d = dot(objNorm, l->dir)) < 0)) {
+			ansColor -= objColor * d;
+		} else if (l->type == LightType::Dot &&
+				   ((d = dot(objNorm, whereInter - l->pos)) <
+					0)) { // LightType::Dot
+			ansColor -=
+				objColor * d * l->intensity(glm::length(whereInter - l->pos));
+		}
+	}
+	// return ansColor;
+	return std::get<1>(i.value());
 }
 
 void Scene::generateImage() {
 	for (uint y = 0; y < this->h; ++y) {
 		for (uint x = 0; x < this->w; ++x) {
-			data[w * y + x] = this->raytrace(this->generateRay({x, y}));
+			data[w * y + x] =
+				normColor(this->raytrace(this->generateRay({x, y})));
 		}
 	}
 }
