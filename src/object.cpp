@@ -3,9 +3,23 @@
 #include "types.hpp"
 #include <optional>
 
+
+bool operator<(const intersection &a, const intersection &b) {
+	return ((a.has_value() && b.has_value() && a->first < b->first) ||
+			(!a.has_value() && b.has_value()));
+}
+
+intersection maxInter(const intersection &a, const intersection &b) {
+	return a < b ? b : a;
+}
+
+intersection minInter(const intersection &a, const intersection &b) {
+	return a < b ? a : b;
+}
+
 #define swapIfMin(x, y)                                                        \
 	{                                                                          \
-		if (x > y)                                                             \
+		if (y < x)                                                             \
 			std::swap(x, y);                                                   \
 	}
 
@@ -34,22 +48,8 @@ intersection Object::intersect(Ray ray) const {
 	return std::nullopt;
 }
 
-vec3 Object::norm(vec3 pos) const {
-	switch (this->s) {
-	case Shape::Plane:
-		return normPlane(*this, pos);
-		break;
-	case Shape::Ellips:
-		return normEllips(*this, pos);
-		break;
-	case Shape::Box:
-		return normBox(*this, pos);
-		break;
-	};
-}
-
 intersection intersectEllips(const Object &o, Ray ray) {
-	vec3 newPos = rotation((ray.pos - o.pos), o.rot.conj()) / o.dim;
+	vec3 newPos = rotation(ray.pos - o.pos, o.rot.conj()) / o.dim;
 	vec3 newDir = rotation(ray.dir, o.rot.conj()) / o.dim;
 	float a = dot(newDir, newDir);
 	float b = 2 * dot(newPos, newDir);
@@ -60,85 +60,65 @@ intersection intersectEllips(const Object &o, Ray ray) {
 	}
 	d = glm::sqrt(d);
 	float t = (-b - d) / (2 * a);
+	vec3 whereInter = newPos + t * newDir;
 	if (t > 0) {
-		return intersection(t);
+		return optional(
+			std::make_pair(t, rotation(glm::normalize(whereInter), o.rot)));
 	}
 	t += d / a;
+	whereInter = newPos + t * newDir;
 	if (t > 0) {
-		return intersection(t);
+		return optional(
+			std::make_pair(t, rotation(glm::normalize(whereInter), o.rot)));
 	}
 	return std::nullopt;
 }
 
 intersection intersectPlane(const Object &o, Ray ray) {
 	float k = dot(o.dim, ray.dir);
-	vec3 newPos = ray.pos - o.pos;
-	float step = -dot(o.dim, newPos);
-	return (k == 0.f) ? std::nullopt : intersection(step / k);
+	if (k == 0.f) {
+		return std::nullopt;
+	}
+	return optional(std::make_pair(-dot(o.dim, ray.pos - o.pos) / k,
+								   k < 0.f ? o.dim : -o.dim));
 }
 
 intersection intersectBox(const Object &o, Ray ray) {
-	vec3 newPos = rotation(ray.pos - o.pos, o.rot.conj());
-	vec3 newDir = rotation(ray.dir, o.rot.conj());
+	vec3 newPos = rotation(ray.pos - o.pos, o.rot.conj()) / o.dim;
+	vec3 newDir = rotation(ray.dir, o.rot.conj()) / o.dim;
 	Ray newRay = Ray(newPos, newDir);
 
-	intersection tx1 = Object(Shape::Plane, {o.dim.x, 0.f, 0.f},
-							  {1.f, 0.f, 0.f}, Quat(), o.c, o.mat, o.ior)
+	intersection tx1 = Object(Shape::Plane, {1.f, 0.f, 0.f}, {1.f, 0.f, 0.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
-	intersection tx2 = Object(Shape::Plane, {-o.dim.x, 0.f, 0.f},
-							  {-1.f, 0.f, 0.f}, Quat(), o.c, o.mat, o.ior)
+	intersection tx2 = Object(Shape::Plane, {-1.f, 0.f, 0.f}, {-1.f, 0.f, 0.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
-	intersection ty1 = Object(Shape::Plane, {0.f, o.dim.y, 0.f},
-							  {0.f, 1.f, 0.f}, Quat(), o.c, o.mat, o.ior)
+	intersection ty1 = Object(Shape::Plane, {0.f, 1.f, 0.f}, {0.f, 1.f, 0.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
-	intersection ty2 = Object(Shape::Plane, {0.f, -o.dim.y, 0.f},
-							  {0.f, -1.f, 0.f}, Quat(), o.c, o.mat, o.ior)
+	intersection ty2 = Object(Shape::Plane, {0.f, -1.f, 0.f}, {0.f, -1.f, 0.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
-	intersection tz1 = Object(Shape::Plane, {0.f, 0.f, o.dim.z},
-							  {0.f, 0.f, 1.f}, Quat(), o.c, o.mat, o.ior)
+	intersection tz1 = Object(Shape::Plane, {0.f, 0.f, 1.f}, {0.f, 0.f, 1.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
-	intersection tz2 = Object(Shape::Plane, {0.f, 0.f, -o.dim.z},
-							  {0.f, 0.f, -1.f}, Quat(), o.c, o.mat, o.ior)
+	intersection tz2 = Object(Shape::Plane, {0.f, 0.f, -1.f}, {0.f, 0.f, -1.f},
+							  Quat(), o.c, o.mat, o.ior)
 						   .intersect(newRay);
 
 	swapIfMin(tx1, tx2);
 	swapIfMin(ty1, ty2);
 	swapIfMin(tz1, tz2);
 
-	float t1 =
-		glm::max(glm::max(tx1.value_or(FLOAT_MIN), ty1.value_or(FLOAT_MIN)),
-				 tz1.value_or(FLOAT_MIN));
-	float t2 =
-		glm::min(glm::min(tx2.value_or(FLOAT_MAX), ty2.value_or(FLOAT_MAX)),
-				 tz2.value_or(FLOAT_MAX));
-	if (t1 > t2 || t2 < 0) {
+	auto t1 = maxInter(maxInter(tx1, ty1), tz1);
+	auto t2 = minInter(minInter(tx2, ty2), tz2);
+
+	if (t2 < t1 || t2 < optional(std::make_pair(0.f, vec3(0.f)))) {
 		return std::nullopt;
 	}
-	if (t1 > 0) {
-		return intersection(t1);
+	if (optional(std::make_pair(0.f, vec3(0.f))) < t1) {
+		return t1;
 	}
-	return intersection(t2);
-}
-
-vec3 normPlane(const Object &o, vec3 pos) {
-	return o.dim;
-}
-
-
-vec3 normBox(const Object &o, vec3 pos) {
-	vec3 newPos = rotation(pos - o.pos, o.rot.conj()) / o.dim;
-	vec3 ans;
-	if (glm::abs(newPos.x) == 1.f) {
-		ans = {newPos.x, 0.f, 0.f};
-	} else if (glm::abs(newPos.y) == 1.f) {
-		ans = {0.f, newPos.y, 0.f};
-	} else {
-		ans = {0.f, 0.f, newPos.z};
-	};
-	return rotation(ans, o.rot);
-}
-
-vec3 normEllips(const Object &o, vec3 pos) {
-	vec3 newPos = rotation(pos - o.pos, o.rot.conj()) / o.dim;
-	return rotation(glm::normalize(newPos / o.dim), o.rot);
+	return t2;
 }

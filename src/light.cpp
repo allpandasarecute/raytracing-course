@@ -1,8 +1,8 @@
 #include "light.hpp"
 
 Light::Light()
-	: type(LightType::Dot), pos({0.f, 0.f, 0.f}), dir({1.f, 0.f, 0.f}),
-	  c({0.f, 0.f, 0.f}), att({0.f, 1.f, 1.f}) {
+	: type(LightType::None), pos({0.f, 0.f, 0.f}), dir({1.f, 0.f, 0.f}),
+	  c({0.f, 0.f, 0.f}), att({1.f, 0.f, 0.1f}) {
 }
 
 Light::Light(LightType type, vec3 pos, vec3 dir, vec3 c, vec3 att)

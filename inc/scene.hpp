@@ -4,6 +4,16 @@
 #include "object.hpp"
 #include "types.hpp"
 
+#pragma pack(push, 1)
+class ColorSave {
+  public:
+	ColorSave() = default;
+	ColorSave(color c);
+
+	byte r, g, b;
+};
+#pragma pack(pop)
+
 class Scene {
   public:
 	Scene();
@@ -18,7 +28,7 @@ class Scene {
 	optional<tuple<float, color, vec3>> intersect(Ray ray);
 	color raytrace(Ray ray);
 
-	vector<color> data;
+	vector<ColorSave> data;
 	uint w, h;
 	vector<obj> objs;
 	Camera cam;

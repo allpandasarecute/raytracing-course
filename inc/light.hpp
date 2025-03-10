@@ -3,6 +3,7 @@
 #include <memory>
 
 enum LightType {
+	None,
 	Dot,
 	Dir
 };

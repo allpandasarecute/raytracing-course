@@ -12,12 +12,18 @@
 
 #define colorToBytes(c) ((byte)glm::round(c * 255))
 #define clampColor(c)                                                          \
-	(color(glm::clamp(c.r, 0.f, 1.f), glm::clamp(c.g, 0.f, 1.f),               \
-		   glm::clamp(c.b, 0.f, 1.f)))
+	(color(glm::clamp((c).r, 0.f, 1.f), glm::clamp((c).g, 0.f, 1.f),           \
+		   glm::clamp((c).b, 0.f, 1.f)))
+
+ColorSave::ColorSave(color c)
+	: r((byte)glm::round(glm::clamp(c.r, 0.f, 1.f) * 255)),
+	  g((byte)glm::round(glm::clamp(c.g, 0.f, 1.f) * 255)),
+	  b((byte)glm::round(glm::clamp(c.b, 0.f, 1.f) * 255)) {
+}
 
 Scene::Scene()
-	: data(vector<vec3>()), w(100), h(100), objs(vector<obj>()), cam(Camera()),
-	  bg(color()), raydepth(1), amb({0.f, 0.f, 0.f}) {
+	: data(vector<ColorSave>()), w(100), h(100), objs(vector<obj>()),
+	  cam(Camera()), bg(color()), raydepth(1), amb({0.f, 0.f, 0.f}) {
 }
 
 Scene::Scene(string file) {
@@ -109,6 +115,7 @@ Scene::Scene(string file) {
 				light->dir = {x, y, z};
 			} else if (command == "LIGHT_POSITION") {
 				input >> x >> y >> z;
+				light->type = LightType::Dot;
 				light->pos = {x, y, z};
 			} else if (command == "LIGHT_ATTENUATION") {
 				input >> x >> y >> z;
@@ -141,10 +148,8 @@ bool Scene::saveImage(string file) {
 			   << std::to_string(this->w) << ' ' + std::to_string(this->h)
 			   << '\n'
 			   << "255" << '\n';
-		for (auto &i : this->data) {
-			output << colorToBytes(i.r) << colorToBytes(i.g)
-				   << colorToBytes(i.b);
-		}
+		output.write((const char *)this->data.data(),
+					 this->data.size() * sizeof(ColorSave));
 		output.close();
 	} catch (const std::exception &e) {
 		std::cout << e.what() << std::endl;
@@ -167,10 +172,9 @@ optional<tuple<float, color, vec3>> Scene::intersect(Ray ray) {
 	intersection t;
 	for (const obj &o : this->objs) {
 		t = o->intersect(ray);
-		if (t.has_value() && t.value() > 0) {
-			if (!ans.has_value() || (std::get<0>(ans.value()) > t.value())) {
-				ans = optional(std::make_tuple(
-					t.value(), o->c, o->norm(ray.pos + ray.dir * t.value())));
+		if (t.has_value() && t->first > 0) {
+			if (!ans.has_value() || (std::get<0>(ans.value()) > t->first)) {
+				ans = optional(std::make_tuple(t->first, o->c, t->second));
 			}
 		}
 	}
@@ -188,26 +192,34 @@ color Scene::raytrace(Ray ray) {
 	vec3 whereInter = ray.pos + ray.dir * std::get<0>(i.value());
 
 	color ansColor = objColor * this->amb;
-	float d;
 
 	for (auto &l : this->lghts) {
-		if (l->type == LightType::Dir && ((d = dot(objNorm, l->dir)) < 0)) {
-			ansColor -= objColor * d * l->c;
-		} else if (l->type == LightType::Dot &&
-				   ((d = dot(objNorm, whereInter - l->pos)) <
-					0)) { // LightType::Dot
-			ansColor -= objColor * d *
-						l->intensity(glm::length(whereInter - l->pos)) * l->c;
+		if (l->type == LightType::Dir) {
+			float d = dot(objNorm, l->dir);
+			if (!this->intersect(Ray(whereInter + objNorm * 0.0001f, l->dir))
+					 .has_value() &&
+				d > 0) {
+				ansColor += objColor * d * l->c;
+			}
 		}
+		// } else if (l->type == LightType::Dot) {
+		// 	float d = dot(objNorm, whereInter - l->pos);
+		// 	if (d < 0) {
+		// 		ansColor -= objColor * d *
+		// 					l->intensity(glm::length(whereInter - l->pos)) *
+		// 					l->c;
+		// 	}
+		// }
 	}
-	return clampColor(ansColor);
+	return ansColor;
 	// return std::get<1>(i.value());
 }
 
 void Scene::generateImage() {
 	for (uint y = 0; y < this->h; ++y) {
 		for (uint x = 0; x < this->w; ++x) {
-			data[w * y + x] = this->raytrace(this->generateRay({x, y}));
+			data[w * y + x] =
+				ColorSave(this->raytrace(this->generateRay({x, y})));
 		}
 	}
 }

@@ -17,6 +17,11 @@ enum class Material {
 	Dielectric
 };
 
+enum class NormDir {
+	Out,
+	In
+};
+
 class Object {
   public:
 	Object();
@@ -42,8 +47,4 @@ intersection intersectBox(const Object &o, Ray ray);
 intersection intersectPlane(const Object &o, Ray ray);
 intersection intersectEllips(const Object &o, Ray ray);
 
-vec3 normBox(const Object &o, vec3 pos);
-vec3 normPlane(const Object &o, vec3 pos);
-vec3 normEllips(const Object &o, vec3 pos);
-
-color normColor(vec3 c);
+bool operator<(const intersection &a, const intersection &b);
