@@ -64,15 +64,13 @@ intersection intersectEllips(const Object &o, Ray ray) {
 	vec3 whereInter = newPos + t * newDir;
 	if (t > 0) {
 		return optional(
-			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot),
-							rotation(whereInter * o.dim, o.rot) + o.pos));
+			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot)));
 	}
 	t += d / a;
 	whereInter = newPos + t * newDir;
 	if (t > 0) {
 		return optional(
-			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot),
-							rotation(whereInter * o.dim, o.rot) + o.pos));
+			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot)));
 	}
 	return std::nullopt;
 }
@@ -83,8 +81,7 @@ intersection intersectPlane(const Object &o, Ray ray) {
 		return std::nullopt;
 	}
 	float t = -dot(o.dim, ray.pos - o.pos) / k;
-	return optional(
-		std::make_tuple(t, k < 0.f ? o.dim : -o.dim, ray.pos + ray.dir * t));
+	return optional(std::make_tuple(t, k < 0.f ? o.dim : -o.dim));
 }
 
 intersection intersectBox(const Object &o, Ray ray) {
@@ -118,11 +115,10 @@ intersection intersectBox(const Object &o, Ray ray) {
 	auto t1 = maxInter(maxInter(tx1, ty1), tz1);
 	auto t2 = minInter(minInter(tx2, ty2), tz2);
 
-	if (comp(t2, t1) ||
-		comp(t2, optional(std::make_tuple(0.f, vec3(0.f), vec3(0.f))))) {
+	if (comp(t2, t1) || comp(t2, optional(std::make_tuple(0.f, vec3(0.f))))) {
 		return std::nullopt;
 	}
-	if (comp(optional(std::make_tuple(0.f, vec3(0.f), vec3(0.f))), t1)) {
+	if (comp(optional(std::make_tuple(0.f, vec3(0.f))), t1)) {
 		return t1;
 	}
 	return t2;

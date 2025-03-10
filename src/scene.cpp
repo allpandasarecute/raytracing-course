@@ -167,8 +167,8 @@ Ray Scene::generateRay(ind coord) {
 							  this->cam.forward));
 }
 
-optional<tuple<float, color, vec3, vec3>> Scene::intersect(Ray ray) {
-	optional<tuple<float, color, vec3, vec3>> ans = std::nullopt;
+optional<tuple<float, color, vec3>> Scene::intersect(Ray ray) {
+	optional<tuple<float, color, vec3>> ans = std::nullopt;
 	intersection t;
 	for (const obj &o : this->objs) {
 		t = o->intersect(ray);
@@ -176,8 +176,7 @@ optional<tuple<float, color, vec3, vec3>> Scene::intersect(Ray ray) {
 			if (!ans.has_value() ||
 				(std::get<0>(ans.value()) > std::get<0>(t.value()))) {
 				ans = optional(std::make_tuple(std::get<0>(t.value()), o->c,
-											   std::get<1>(t.value()),
-											   std::get<2>(t.value())));
+											   std::get<1>(t.value())));
 			}
 		}
 	}
@@ -191,8 +190,9 @@ color Scene::raytrace(Ray ray) {
 	}
 	float t;
 	color objColor;
-	vec3 objNorm, whereInter;
-	std::tie(t, objColor, objNorm, whereInter) = i.value();
+	vec3 objNorm;
+	std::tie(t, objColor, objNorm) = i.value();
+	vec3 whereInter = ray.pos + t * ray.dir;
 
 	color ansColor = this->amb;
 

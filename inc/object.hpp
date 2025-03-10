@@ -47,4 +47,4 @@ intersection intersectBox(const Object &o, Ray ray);
 intersection intersectPlane(const Object &o, Ray ray);
 intersection intersectEllips(const Object &o, Ray ray);
 
-bool operator<(const intersection &a, const intersection &b);
+bool comp(const intersection &a, const intersection &b);
