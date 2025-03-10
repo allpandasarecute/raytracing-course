@@ -4,22 +4,23 @@
 #include <optional>
 
 
-bool operator<(const intersection &a, const intersection &b) {
-	return ((a.has_value() && b.has_value() && a->first < b->first) ||
+bool comp(const intersection &a, const intersection &b) {
+	return ((a.has_value() && b.has_value() &&
+			 std::get<0>(a.value()) < std::get<0>(b.value())) ||
 			(!a.has_value() && b.has_value()));
 }
 
 intersection maxInter(const intersection &a, const intersection &b) {
-	return a < b ? b : a;
+	return comp(a, b) ? b : a;
 }
 
 intersection minInter(const intersection &a, const intersection &b) {
-	return a < b ? a : b;
+	return comp(a, b) ? a : b;
 }
 
 #define swapIfMin(x, y)                                                        \
 	{                                                                          \
-		if (y < x)                                                             \
+		if (comp(y, x))                                                        \
 			std::swap(x, y);                                                   \
 	}
 
@@ -63,13 +64,15 @@ intersection intersectEllips(const Object &o, Ray ray) {
 	vec3 whereInter = newPos + t * newDir;
 	if (t > 0) {
 		return optional(
-			std::make_pair(t, rotation(glm::normalize(whereInter), o.rot)));
+			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot),
+							rotation(whereInter * o.dim, o.rot) + o.pos));
 	}
 	t += d / a;
 	whereInter = newPos + t * newDir;
 	if (t > 0) {
 		return optional(
-			std::make_pair(t, rotation(glm::normalize(whereInter), o.rot)));
+			std::make_tuple(t, rotation(glm::normalize(whereInter), o.rot),
+							rotation(whereInter * o.dim, o.rot) + o.pos));
 	}
 	return std::nullopt;
 }
@@ -79,8 +82,9 @@ intersection intersectPlane(const Object &o, Ray ray) {
 	if (k == 0.f) {
 		return std::nullopt;
 	}
-	return optional(std::make_pair(-dot(o.dim, ray.pos - o.pos) / k,
-								   k < 0.f ? o.dim : -o.dim));
+	float t = -dot(o.dim, ray.pos - o.pos) / k;
+	return optional(
+		std::make_tuple(t, k < 0.f ? o.dim : -o.dim, ray.pos + ray.dir * t));
 }
 
 intersection intersectBox(const Object &o, Ray ray) {
@@ -114,10 +118,11 @@ intersection intersectBox(const Object &o, Ray ray) {
 	auto t1 = maxInter(maxInter(tx1, ty1), tz1);
 	auto t2 = minInter(minInter(tx2, ty2), tz2);
 
-	if (t2 < t1 || t2 < optional(std::make_pair(0.f, vec3(0.f)))) {
+	if (comp(t2, t1) ||
+		comp(t2, optional(std::make_tuple(0.f, vec3(0.f), vec3(0.f))))) {
 		return std::nullopt;
 	}
-	if (optional(std::make_pair(0.f, vec3(0.f))) < t1) {
+	if (comp(optional(std::make_tuple(0.f, vec3(0.f), vec3(0.f))), t1)) {
 		return t1;
 	}
 	return t2;

@@ -20,4 +20,4 @@ typedef std::uint8_t byte;
 typedef unsigned int uint;
 typedef uvec2 ind;
 typedef vec3 color;
-typedef optional<pair<float, vec3>> intersection;
+typedef optional<tuple<float, vec3, vec3>> intersection; // t, norm, whereInter

@@ -167,14 +167,17 @@ Ray Scene::generateRay(ind coord) {
 							  this->cam.forward));
 }
 
-optional<tuple<float, color, vec3>> Scene::intersect(Ray ray) {
-	optional<tuple<float, color, vec3>> ans = std::nullopt;
+optional<tuple<float, color, vec3, vec3>> Scene::intersect(Ray ray) {
+	optional<tuple<float, color, vec3, vec3>> ans = std::nullopt;
 	intersection t;
 	for (const obj &o : this->objs) {
 		t = o->intersect(ray);
-		if (t.has_value() && t->first > 0) {
-			if (!ans.has_value() || (std::get<0>(ans.value()) > t->first)) {
-				ans = optional(std::make_tuple(t->first, o->c, t->second));
+		if (t.has_value() && std::get<0>(t.value()) > 0) {
+			if (!ans.has_value() ||
+				(std::get<0>(ans.value()) > std::get<0>(t.value()))) {
+				ans = optional(std::make_tuple(std::get<0>(t.value()), o->c,
+											   std::get<1>(t.value()),
+											   std::get<2>(t.value())));
 			}
 		}
 	}
@@ -186,12 +189,12 @@ color Scene::raytrace(Ray ray) {
 	if (!i.has_value()) {
 		return this->bg;
 	}
+	float t;
+	color objColor;
+	vec3 objNorm, whereInter;
+	std::tie(t, objColor, objNorm, whereInter) = i.value();
 
-	color objColor = std::get<1>(i.value());
-	vec3 objNorm = std::get<2>(i.value());
-	vec3 whereInter = ray.pos + ray.dir * std::get<0>(i.value());
-
-	color ansColor = objColor * this->amb;
+	color ansColor = this->amb;
 
 	for (auto &l : this->lghts) {
 		if (l->type == LightType::Dir) {
@@ -199,7 +202,7 @@ color Scene::raytrace(Ray ray) {
 			if (!this->intersect(Ray(whereInter + objNorm * 0.0001f, l->dir))
 					 .has_value() &&
 				d > 0) {
-				ansColor += objColor * d * l->c;
+				ansColor += d * l->c;
 			}
 		}
 		// } else if (l->type == LightType::Dot) {
@@ -211,7 +214,7 @@ color Scene::raytrace(Ray ray) {
 		// 	}
 		// }
 	}
-	return ansColor;
+	return ansColor * objColor;
 	// return std::get<1>(i.value());
 }
 

@@ -25,7 +25,7 @@ class Scene {
 	bool saveImage(string file);
 
 	Ray generateRay(ind coord);
-	optional<tuple<float, color, vec3>> intersect(Ray ray);
+	optional<tuple<float, color, vec3, vec3>> intersect(Ray ray);
 	color raytrace(Ray ray);
 
 	vector<ColorSave> data;
