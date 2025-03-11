@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include "glm/geometric.hpp"
 #include "glm/glm.hpp"
 #include "light.hpp"
 #include "object.hpp"
@@ -194,27 +195,32 @@ color Scene::raytrace(Ray ray) {
 	std::tie(t, objColor, objNorm) = i.value();
 	vec3 whereInter = ray.pos + t * ray.dir;
 
-	color ansColor = this->amb;
+	color ansColor = objColor * this->amb;
 
 	for (auto &l : this->lghts) {
 		if (l->type == LightType::Dir) {
 			float d = dot(objNorm, l->dir);
-			if (!this->intersect(Ray(whereInter + objNorm * 0.0001f, l->dir))
-					 .has_value() &&
-				d > 0) {
-				ansColor += d * l->c;
+			if (d > 0 &&
+				!this->intersect(Ray(whereInter + objNorm * 0.0001f, l->dir))
+					 .has_value()) {
+				ansColor += d * l->c * objColor;
+			}
+		} else if (l->type == LightType::Dot) {
+			vec3 toLight = l->pos - whereInter;
+			float r = glm::length(toLight);
+			toLight = glm::normalize(toLight);
+			float d = dot(objNorm, toLight);
+
+			if (d > 0) {
+				auto p = this->intersect(
+					Ray(whereInter + objNorm * 0.0001f, toLight));
+				if (!p.has_value() || std::get<0>(p.value()) > r) {
+					ansColor += d * l->intensity(r) * l->c * objColor;
+				}
 			}
 		}
-		// } else if (l->type == LightType::Dot) {
-		// 	float d = dot(objNorm, whereInter - l->pos);
-		// 	if (d < 0) {
-		// 		ansColor -= objColor * d *
-		// 					l->intensity(glm::length(whereInter - l->pos)) *
-		// 					l->c;
-		// 	}
-		// }
 	}
-	return ansColor * objColor;
+	return ansColor;
 	// return std::get<1>(i.value());
 }
 
