@@ -16,6 +16,7 @@ class Light {
 	~Light() = default;
 
 	float intensity(float r);
+	tuple<color, float, vec3> getLight(vec3 norm, vec3 pos);
 
 	LightType type;
 	vec3 pos, dir, c, att;

@@ -24,9 +24,9 @@ class Scene {
 	void generateImage();
 	bool saveImage(string file);
 
-	Ray generateRay(ind coord);
-	optional<tuple<float, color, vec3>> intersect(Ray ray);
-	color raytrace(Ray ray);
+	Ray generateRay(uvec2 coord);
+	optional<tuple<float, vec3, uint, bool>> intersect(Ray ray, float r);
+	color raytrace(Ray ray, uint depth);
 
 	vector<ColorSave> data;
 	uint w, h;

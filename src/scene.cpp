@@ -3,6 +3,7 @@
 #include "glm/glm.hpp"
 #include "light.hpp"
 #include "object.hpp"
+#include "types.hpp"
 #include <exception>
 #include <fstream>
 #include <ios>
@@ -11,15 +12,23 @@
 #include <optional>
 #include <string>
 
-#define colorToBytes(c) ((byte)glm::round(c * 255))
-#define clampColor(c)                                                          \
-	(color(glm::clamp((c).r, 0.f, 1.f), glm::clamp((c).g, 0.f, 1.f),           \
-		   glm::clamp((c).b, 0.f, 1.f)))
+#define colorToBytes(c)                                                        \
+	((byte)glm::round(glm::pow(glm::clamp(c, 0.f, 1.f), 1.f / 2.2) * 255.f))
 
-ColorSave::ColorSave(color c)
-	: r((byte)glm::round(glm::clamp(c.r, 0.f, 1.f) * 255)),
-	  g((byte)glm::round(glm::clamp(c.g, 0.f, 1.f) * 255)),
-	  b((byte)glm::round(glm::clamp(c.b, 0.f, 1.f) * 255)) {
+color tonemap(color col) {
+	const float a = 2.51f;
+	const float b = 0.03f;
+	const float c = 2.43f;
+	const float d = 0.59f;
+	const float e = 0.14f;
+	return (col * (a * col + b)) / (col * (c * col + d) + e);
+}
+
+ColorSave::ColorSave(color c) {
+	c = tonemap(c);
+	this->r = colorToBytes(c.r);
+	this->g = colorToBytes(c.g);
+	this->b = colorToBytes(c.b);
 }
 
 Scene::Scene()
@@ -57,7 +66,6 @@ Scene::Scene(string file) {
 				input >> x >> y >> z;
 				this->cam.forward = {x, y, z};
 			} else if (command == "CAMERA_FOV_X") {
-				// WARNING: assuming, command DIMENSIONS was before this one
 				input >> x;
 				this->cam.fovx = glm::tan(x / 2.f);
 				this->cam.fovy = this->cam.fovx * this->h / this->w;
@@ -160,75 +168,103 @@ bool Scene::saveImage(string file) {
 	return true;
 }
 
-Ray Scene::generateRay(ind coord) {
+Ray Scene::generateRay(uvec2 coord) {
 	float newX = (2.f * (coord.x + 0.5f) / this->w - 1) * this->cam.fovx;
 	float newY = -(2.f * (coord.y + 0.5f) / this->h - 1) * this->cam.fovy;
-	return Ray(this->cam.pos,
-			   glm::normalize(newX * this->cam.right + newY * this->cam.up +
-							  this->cam.forward));
+	return Ray(this->cam.pos, newX * this->cam.right + newY * this->cam.up +
+								  this->cam.forward);
 }
 
-optional<tuple<float, color, vec3>> Scene::intersect(Ray ray) {
-	optional<tuple<float, color, vec3>> ans = std::nullopt;
-	intersection t;
-	for (const obj &o : this->objs) {
-		t = o->intersect(ray);
-		if (t.has_value() && std::get<0>(t.value()) > 0) {
+optional<tuple<float, vec3, uint, bool>> Scene::intersect(Ray ray, float r) {
+	optional<tuple<float, vec3, uint, bool>> ans = std::nullopt;
+	optional<tuple<float, vec3, bool>> temp = std::nullopt;
+	tuple<float, vec3, bool> t;
+	optional<color> ansColor = std::nullopt;
+	for (int i = 0; i < this->objs.size(); ++i) {
+		temp = this->objs[i]->intersect(ray);
+		if (!temp.has_value()) {
+			continue;
+		}
+		t = temp.value();
+		if (std::get<0>(t) > 0 && std::get<0>(t) < r) {
 			if (!ans.has_value() ||
-				(std::get<0>(ans.value()) > std::get<0>(t.value()))) {
-				ans = optional(std::make_tuple(std::get<0>(t.value()), o->c,
-											   std::get<1>(t.value())));
+				(std::get<0>(ans.value()) > std::get<0>(t))) {
+				ans = std::make_tuple(std::get<0>(t), std::get<1>(t), i,
+									  std::get<2>(t));
 			}
 		}
 	}
 	return ans;
 }
 
-color Scene::raytrace(Ray ray) {
-	auto i = this->intersect(ray);
+color Scene::raytrace(Ray ray, uint depth) {
+	if (depth >= this->raydepth) {
+		return color(0.f);
+	}
+
+	auto i = this->intersect(ray, FLOAT_MAX);
 	if (!i.has_value()) {
 		return this->bg;
 	}
-	float t;
-	color objColor;
-	vec3 objNorm;
-	std::tie(t, objColor, objNorm) = i.value();
+
+	// objNorm is always outside of an object
+	auto [t, objNorm, ind, isInside] = i.value();
+	color objColor = this->objs[ind]->c;
 	vec3 whereInter = ray.pos + t * ray.dir;
 
-	color ansColor = objColor * this->amb;
-
-	for (auto &l : this->lghts) {
-		if (l->type == LightType::Dir) {
-			float d = dot(objNorm, l->dir);
-			if (d > 0 &&
-				!this->intersect(Ray(whereInter + objNorm * 0.0001f, l->dir))
-					 .has_value()) {
-				ansColor += d * l->c * objColor;
-			}
-		} else if (l->type == LightType::Dot) {
-			vec3 toLight = l->pos - whereInter;
-			float r = glm::length(toLight);
-			toLight = glm::normalize(toLight);
-			float d = dot(objNorm, toLight);
-
-			if (d > 0) {
-				auto p = this->intersect(
-					Ray(whereInter + objNorm * 0.0001f, toLight));
-				if (!p.has_value() || std::get<0>(p.value()) > r) {
-					ansColor += d * l->intensity(r) * l->c * objColor;
-				}
+	if (this->objs[ind]->mat == Material::Diffuse) {
+		color ansColor = this->amb;
+		for (auto &l : this->lghts) {
+			auto [c, r, lDir] = l->getLight(objNorm, whereInter);
+			if (!this->intersect(Ray(whereInter + objNorm * DELTA, lDir), r)) {
+				ansColor += c;
 			}
 		}
+		return ansColor * objColor;
+	} else if (this->objs[ind]->mat == Material::Metallic) {
+		return objColor *
+			   this->raytrace(
+				   Ray(whereInter + objNorm * DELTA,
+					   ray.dir - 2 * dot(ray.dir, objNorm) * objNorm),
+				   depth + 1);
+	} else if (this->objs[ind]->mat == Material::Dielectric) {
+		float d = dot(objNorm, ray.dir);
+		vec3 reflectedDir = ray.dir - 2.f * d * objNorm;
+		Ray reflectedRay = Ray(whereInter + DELTA * objNorm, reflectedDir);
+		color reflectedColor = this->raytrace(reflectedRay, depth + 1);
+
+		float p1 = (isInside ? this->objs[ind]->ior : 1.f);
+		float p2 = (!isInside ? this->objs[ind]->ior : 1.f);
+
+		float sin2 = p1 / p2 * glm::sqrt(1 - d * d);
+
+		if (glm::abs(sin2) > 1.f) {
+			return reflectedColor;
+		}
+
+		float cos2 = glm::sqrt(1 - sin2 * sin2);
+
+		vec3 refractedDir = glm::normalize((p1 / p2) * ray.dir -
+										   (p1 / p2 * d + cos2) * objNorm);
+		Ray refractedRay = Ray(whereInter + DELTA * refractedDir, refractedDir);
+		color refractedColor = this->raytrace(refractedRay, depth + 1);
+
+		if (!isInside) {
+			refractedColor *= objColor;
+		}
+
+		float r0 = (p1 - p2) * (p1 - p2) / ((p1 + p2) * (p1 + p2));
+		float r = r0 + (1.f - r0) * glm::pow(1.f + d, 5.f);
+		return r * reflectedColor + (1.f - r) * refractedColor;
 	}
-	return ansColor;
-	// return std::get<1>(i.value());
+	return color(0.f);
 }
 
 void Scene::generateImage() {
 	for (uint y = 0; y < this->h; ++y) {
 		for (uint x = 0; x < this->w; ++x) {
 			data[w * y + x] =
-				ColorSave(this->raytrace(this->generateRay({x, y})));
+				ColorSave(this->raytrace(this->generateRay({x, y}), 0));
 		}
 	}
 }
