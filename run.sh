@@ -2,4 +2,4 @@
 
 SCRIPTPATH=$(dirname "$(realpath "$0")")
 BUILDPATH="$SCRIPTPATH/build"
-$BUILDPATH/pr1 $1 $2
+$BUILDPATH/pr2 $1 $2

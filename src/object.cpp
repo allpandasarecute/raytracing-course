@@ -1,22 +1,38 @@
 #include "object.hpp"
+#include "glm/geometric.hpp"
 #include "quat.hpp"
 #include "types.hpp"
-#include <iostream>
 #include <optional>
+
+
+bool comp(const intersection &a, const intersection &b) {
+	return ((a.has_value() && b.has_value() &&
+			 (std::get<0>(a.value()) < std::get<0>(b.value()))) ||
+			(!a.has_value() && b.has_value()));
+}
+
+intersection maxInter(const intersection &a, const intersection &b) {
+	return comp(a, b) ? b : a;
+}
+
+intersection minInter(const intersection &a, const intersection &b) {
+	return comp(a, b) ? a : b;
+}
 
 #define swapIfMin(x, y)                                                        \
 	{                                                                          \
-		if (x > y)                                                             \
+		if (comp(y, x))                                                        \
 			std::swap(x, y);                                                   \
 	}
 
 Object::Object()
 	: s(Shape::None), pos(vec3(0.f)), dim(vec3(1.f)), rot({vec3(0.f), 1.f}),
-	  color(Color()) {
+	  c(color()), mat(Material::Diffuse), ior(0.f) {
 }
 
-Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, Color color)
-	: s(s), pos(pos), dim(dim), rot(rot), color(color) {
+Object::Object(Shape s, vec3 pos, vec3 dim, Quat rot, color c, Material mat,
+			   float ior)
+	: s(s), pos(pos), dim(dim), rot(rot), c(c), mat(mat), ior(ior) {
 }
 
 intersection Object::intersect(Ray ray) const {
@@ -35,7 +51,7 @@ intersection Object::intersect(Ray ray) const {
 }
 
 intersection intersectEllips(const Object &o, Ray ray) {
-	vec3 newPos = rotation((ray.pos - o.pos), o.rot.conj()) / o.dim;
+	vec3 newPos = rotation(ray.pos - o.pos, o.rot.conj()) / o.dim;
 	vec3 newDir = rotation(ray.dir, o.rot.conj()) / o.dim;
 	float a = dot(newDir, newDir);
 	float b = 2 * dot(newPos, newDir);
@@ -45,63 +61,72 @@ intersection intersectEllips(const Object &o, Ray ray) {
 		return std::nullopt;
 	}
 	d = glm::sqrt(d);
-	float t = (-b - d) / (2 * a);
-	if (t > 0) {
-		return intersection(t);
+	float t1 = (-b - d) / (2 * a);
+	float t2 = (-b + d) / (2 * a);
+
+	float x1 = glm::min(t1, t2);
+	float x2 = glm::max(t1, t2);
+
+	if (x2 <= 0) {
+		return std::nullopt;
+	} else if (x1 <= 0) {
+		return std::make_tuple(
+			x2,
+			-rotation(glm::normalize((newPos + x2 * newDir) / o.dim), o.rot),
+			true);
+	} else {
+		return std::make_tuple(
+			x1, rotation(glm::normalize((newPos + x1 * newDir) / o.dim), o.rot),
+			false);
 	}
-	t += d / a;
-	if (t > 0) {
-		return intersection(t);
-	}
-	return std::nullopt;
 }
 
 intersection intersectPlane(const Object &o, Ray ray) {
-	float k = dot(o.dim, ray.dir);
-	vec3 newPos = ray.pos - o.pos;
-	float step = -dot(o.dim, newPos);
-	return (k == 0.f) ? std::nullopt : intersection(step / k);
+	float d = dot(o.dim, ray.dir);
+	if (d == 0.f) {
+		return std::nullopt;
+	}
+	float t = -dot(o.dim, ray.pos - o.pos) / d;
+	bool isInter = (d > 0);
+	return std::make_tuple(t, isInter ? -o.dim : o.dim, isInter);
+}
+
+float sign(float x) {
+	return (x < 0.f) ? -1.f : 1.f;
 }
 
 intersection intersectBox(const Object &o, Ray ray) {
-	vec3 newPos = rotation(ray.pos - o.pos, o.rot.conj());
+	vec3 newPos = rotation((ray.pos - o.pos), o.rot.conj());
 	vec3 newDir = rotation(ray.dir, o.rot.conj());
-	Ray newRay = Ray(newPos, newDir);
 
-	intersection tx1 = Object(Shape::Plane, {o.dim.x, 0.f, 0.f},
-							  {1.f, 0.f, 0.f}, Quat(), o.color)
-						   .intersect(newRay);
-	intersection tx2 = Object(Shape::Plane, {-o.dim.x, 0.f, 0.f},
-							  {-1.f, 0.f, 0.f}, Quat(), o.color)
-						   .intersect(newRay);
-	intersection ty1 = Object(Shape::Plane, {0.f, o.dim.y, 0.f},
-							  {0.f, 1.f, 0.f}, Quat(), o.color)
-						   .intersect(newRay);
-	intersection ty2 = Object(Shape::Plane, {0.f, -o.dim.y, 0.f},
-							  {0.f, -1.f, 0.f}, Quat(), o.color)
-						   .intersect(newRay);
-	intersection tz1 = Object(Shape::Plane, {0.f, 0.f, o.dim.z},
-							  {0.f, 0.f, 1.f}, Quat(), o.color)
-						   .intersect(newRay);
-	intersection tz2 = Object(Shape::Plane, {0.f, 0.f, -o.dim.z},
-							  {0.f, 0.f, -1.f}, Quat(), o.color)
-						   .intersect(newRay);
-
-	swapIfMin(tx1, tx2);
-	swapIfMin(ty1, ty2);
-	swapIfMin(tz1, tz2);
+	vec3 tp1 = (o.dim - newPos) / newDir;
+	vec3 tp2 = (-o.dim - newPos) / newDir;
 
 	float t1 =
-		glm::max(glm::max(tx1.value_or(FLOAT_MIN), ty1.value_or(FLOAT_MIN)),
-				 tz1.value_or(FLOAT_MIN));
+		glm::max(glm::max(glm::min(tp1.x, tp2.x), glm::min(tp1.y, tp2.y)),
+				 glm::min(tp1.z, tp2.z));
 	float t2 =
-		glm::min(glm::min(tx2.value_or(FLOAT_MAX), ty2.value_or(FLOAT_MAX)),
-				 tz2.value_or(FLOAT_MAX));
-	if (t1 > t2 || t2 < 0) {
+		glm::min(glm::min(glm::max(tp1.x, tp2.x), glm::max(tp1.y, tp2.y)),
+				 glm::max(tp1.z, tp2.z));
+
+	if (t1 > t2 || t2 < 0.f) {
 		return std::nullopt;
 	}
-	if (t1 > 0) {
-		return intersection(t1);
+
+	float t = (t1 < 0.f) ? t2 : t1;
+	bool isInter = (t1 < 0.f);
+	vec3 norm = (newPos + t * newDir) / o.dim;
+
+	if (glm::abs(norm.x) > glm::abs(norm.y) &&
+		glm::abs(norm.x) > glm::abs(norm.z)) {
+		norm = {sign(norm.x), 0.f, 0.f};
+	} else if ((glm::abs(norm.y) > glm::abs(norm.x) &&
+				glm::abs(norm.y) > glm::abs(norm.z))) {
+		norm = {0.f, sign(norm.y), 0.f};
+	} else {
+		norm = {0.f, 0.f, sign(norm.z)};
 	}
-	return intersection(t2);
+
+	return std::make_tuple(t, rotation((isInter ? -1.f : 1.f) * norm, o.rot),
+						   isInter);
 }

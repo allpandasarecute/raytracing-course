@@ -1,8 +1,18 @@
 #pragma once
 #include "camera.hpp"
-#include "color.hpp"
+#include "light.hpp"
 #include "object.hpp"
 #include "types.hpp"
+
+#pragma pack(push, 1)
+class ColorSave {
+  public:
+	ColorSave() = default;
+	ColorSave(color c);
+
+	byte r, g, b;
+};
+#pragma pack(pop)
 
 class Scene {
   public:
@@ -11,18 +21,19 @@ class Scene {
 	Scene(string file);
 	~Scene() = default;
 
-	Color &operator[](ind coord);
-
 	void generateImage();
 	bool saveImage(string file);
 
-	Ray generateRay(ind coord);
-	optional<pair<float, Color>> intersect(Ray ray);
-	Color raytrace(Ray ray);
+	Ray generateRay(uvec2 coord);
+	optional<tuple<float, vec3, uint, bool>> intersect(Ray ray, float r);
+	color raytrace(Ray ray, uint depth);
 
-	vector<Color> data;
+	vector<ColorSave> data;
 	uint w, h;
 	vector<obj> objs;
 	Camera cam;
-	Color bg;
+	color bg;
+	uint raydepth;
+	vec3 amb;
+	vector<lght> lghts;
 };
