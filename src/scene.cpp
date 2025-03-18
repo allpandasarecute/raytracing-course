@@ -1,5 +1,4 @@
 #include "scene.hpp"
-#include "glm/geometric.hpp"
 #include "glm/glm.hpp"
 #include "light.hpp"
 #include "object.hpp"

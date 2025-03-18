@@ -71,10 +71,13 @@ intersection intersectEllips(const Object &o, Ray ray) {
 		return std::nullopt;
 	} else if (x1 <= 0) {
 		return std::make_tuple(
-			x2, -rotation(glm::normalize(newPos + x2 * newDir), o.rot), true);
+			x2,
+			-rotation(glm::normalize((newPos + x2 * newDir) / o.dim), o.rot),
+			true);
 	} else {
 		return std::make_tuple(
-			x1, rotation(glm::normalize(newPos + x1 * newDir), o.rot), false);
+			x1, rotation(glm::normalize((newPos + x1 * newDir) / o.dim), o.rot),
+			false);
 	}
 }
 
