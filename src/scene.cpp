@@ -185,7 +185,7 @@ optional<tuple<float, vec3, uint, bool>> Scene::intersect(Ray ray, float r) {
 			continue;
 		}
 		t = temp.value();
-		if (std::get<0>(t) > 0 && std::get<0>(t) < r) {
+		if (std::get<0>(t) < r) {
 			if (!ans.has_value() ||
 				(std::get<0>(ans.value()) > std::get<0>(t))) {
 				ans = std::make_tuple(std::get<0>(t), std::get<1>(t), i,
@@ -197,7 +197,7 @@ optional<tuple<float, vec3, uint, bool>> Scene::intersect(Ray ray, float r) {
 }
 
 color Scene::raytrace(Ray ray, uint depth) {
-	if (depth >= this->raydepth) {
+	if (depth > this->raydepth) {
 		return color(0.f);
 	}
 

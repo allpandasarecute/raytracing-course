@@ -69,7 +69,8 @@ intersection intersectEllips(const Object &o, Ray ray) {
 
 	if (x2 <= 0) {
 		return std::nullopt;
-	} else if (x1 <= 0) {
+	}
+	if (x1 <= 0) {
 		return std::make_tuple(
 			x2,
 			-rotation(glm::normalize((newPos + x2 * newDir) / o.dim), o.rot),
@@ -87,6 +88,9 @@ intersection intersectPlane(const Object &o, Ray ray) {
 		return std::nullopt;
 	}
 	float t = -dot(o.dim, ray.pos - o.pos) / d;
+	if (t <= 0) {
+		return std::nullopt;
+	}
 	bool isInter = (d > 0);
 	return std::make_tuple(t, isInter ? -o.dim : o.dim, isInter);
 }
@@ -109,11 +113,11 @@ intersection intersectBox(const Object &o, Ray ray) {
 		glm::min(glm::min(glm::max(tp1.x, tp2.x), glm::max(tp1.y, tp2.y)),
 				 glm::max(tp1.z, tp2.z));
 
-	if (t1 > t2 || t2 < 0.f) {
+	if (t1 > t2 || t2 <= 0.f) {
 		return std::nullopt;
 	}
 
-	float t = (t1 < 0.f) ? t2 : t1;
+	float t = (t1 <= 0.f) ? t2 : t1;
 	bool isInter = (t1 < 0.f);
 	vec3 norm = (newPos + t * newDir) / o.dim;
 
