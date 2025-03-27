@@ -197,7 +197,7 @@ optional<tuple<float, vec3, uint, bool>> Scene::intersect(Ray ray, float r) {
 }
 
 color Scene::raytrace(Ray ray, uint depth) {
-	if (depth > this->raydepth) {
+	if (depth >= this->raydepth) {
 		return color(0.f);
 	}
 
