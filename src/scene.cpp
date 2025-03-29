@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <ostream>
 #include <string>
 
 #define colorToBytes(c)                                                        \
@@ -262,7 +263,7 @@ color Scene::raytrace(Ray ray, uint depth) {
 void Scene::generateImage() {
 	for (uint y = 0; y < this->h; ++y) {
 		for (uint x = 0; x < this->w; ++x) {
-			data[w * y + x] =
+			data[this->w * y + x] =
 				ColorSave(this->raytrace(this->generateRay({x, y}), 0));
 		}
 	}

@@ -6,12 +6,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	string input = string(argv[1]);
-	string output = string(argv[2]);
-
-	Scene s = Scene(input);
+	Scene s = Scene(argv[1]);
 	s.generateImage();
-	s.saveImage(output);
+	s.saveImage(argv[2]);
 
 	return 0;
 }
