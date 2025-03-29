@@ -5,4 +5,4 @@ SCRIPTPATH=$(dirname "$(realpath "$0")")
 # mkdir -p $BUILDPATH
 # cmake -S $SCRIPTPATH -B $BUILDPATH -DCMAKE_BUILD_TYPE=Release 
 # cmake --build $BUILDPATH
-odin build "$SCRIPTPATH/odin" -o:speed
+/usr/local/odin/odin build "$SCRIPTPATH/odin" -o:speed -out:pr2
