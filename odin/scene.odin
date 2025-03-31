@@ -152,7 +152,7 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 		if randF32() < r {
 			return s.objects[si.objIndex].emm + reflectedColor
 		}
-		return r * reflectedColor + (1 - r) * refractedColor
+		return s.objects[si.objIndex].emm + refractedColor
 	case:
 		panic("Not initialized object material")
 	}
