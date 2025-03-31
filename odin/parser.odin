@@ -59,6 +59,10 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 		defer delete(t)
 
 		if newPrimitive {
+			if t[0] == "EMISSION" {
+				read3F32(&object.emm, &t)
+				continue
+			}
 			if t[0] == "METALLIC" {
 				object.mat = Metallic{}
 				continue
@@ -184,12 +188,12 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 			readU64(&s.raydepth, &t[1])
 			continue
 		}
-		if t[0] == "BG_COLOR" {
-			read3F32(&s.bg, &t)
+		if t[0] == "SAMPLES" {
+			readU64(&s.samples, &t[1])
 			continue
 		}
-		if t[0] == "AMBIENT_LIGHT" {
-			read3F32(&s.amb, &t)
+		if t[0] == "BG_COLOR" {
+			read3F32(&s.bg, &t)
 			continue
 		}
 		if t[0] == "CAMERA_POSITION" {

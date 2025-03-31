@@ -40,6 +40,7 @@ Object :: struct {
 	mat:   Material,
 	color: Color,
 	pos:   Vec3f,
+	emm:   Color,
 }
 
 Intersection :: struct {
