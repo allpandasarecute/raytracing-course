@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 SCRIPTPATH=$(dirname "$(realpath "$0")")
-$SCRIPTPATH/pr3 $1 $2
+$SCRIPTPATH/pr4 $1 $2
