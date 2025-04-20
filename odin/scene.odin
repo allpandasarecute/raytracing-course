@@ -1,13 +1,9 @@
 package main
 
 import "core:bufio"
-import "core:fmt"
-import "core:io"
 import "core:math"
-import "core:math/rand"
 import "core:os"
 import "core:slice"
-import "core:strconv"
 import "core:strings"
 
 Camera :: struct {
@@ -22,8 +18,8 @@ Scene :: struct {
 	bg:       Color,
 	raydepth: u64,
 	samples:  u64,
-	lights:   [dynamic]Light,
 	objects:  [dynamic]Object,
+	sampler:  Sampler,
 }
 
 SceneIntersection :: struct {
@@ -53,28 +49,9 @@ saveImage :: proc(#by_ptr s: Scene, #by_ptr file: string) {
 	bufio.writer_write(&w, slice.bytes_from_ptr(&s.data[0], len(s.data) * size_of(ColorSave)))
 }
 
-randF32Dir :: #force_inline proc() -> f32 {
-	return rand.float32_uniform(-1, 1)
-}
-
-randF32 :: #force_inline proc() -> f32 {
-	return rand.float32_uniform(0, 1)
-}
-
-generateRandDir :: proc() -> Vec3f {
-	v := Vec3f{randF32Dir(), randF32Dir(), randF32Dir()}
-	l := length(v)
-	return v / l if l <= 1 else generateRandDir()
-}
-
-generateRandReflection :: #force_inline proc(#by_ptr norm: Vec3f) -> Vec3f {
-	v := generateRandDir()
-	return v if dot(norm, v) > 0 else -v
-}
-
-generateRay :: proc(#by_ptr s: Scene, x, y: u64, dx, dy: f32) -> Ray {
-	newX := (2 * (f32(x) + dx) / f32(s.w) - 1) * s.cam.fovx
-	newY := -(2 * (f32(y) + dy) / f32(s.h) - 1) * s.cam.fovy
+generateRay :: proc(#by_ptr s: Scene, x, y: u64) -> Ray {
+	newX := (2 * (f32(x) + randF32()) / f32(s.w) - 1) * s.cam.fovx
+	newY := -(2 * (f32(y) + randF32()) / f32(s.h) - 1) * s.cam.fovy
 	return getRay(s.cam.pos, newX * s.cam.right + newY * s.cam.up + s.cam.forward)
 }
 
@@ -104,13 +81,19 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 
 	switch mat in s.objects[si.objIndex].mat {
 	case Diffuse:
-		dir := generateRandReflection(si.norm)
+		dir := sample(s.sampler, movePoint(whereInter, si.norm), si.norm)
+		p := pdf(s.sampler, movePoint(whereInter, si.norm), si.norm, dir)
+		for p < 0 {
+			dir = sample(s.sampler, movePoint(whereInter, si.norm), si.norm)
+			p = pdf(s.sampler, movePoint(whereInter, si.norm), si.norm, dir)
+		}
 		return(
 			s.objects[si.objIndex].emm +
-			2 *
-				raytraceScene(s, getRay(movePoint(whereInter, si.norm), dir), depth + 1) *
+			raytraceScene(s, getRay(movePoint(whereInter, si.norm), dir), depth + 1) *
 				s.objects[si.objIndex].color *
-				dot(dir, si.norm) \
+				dot(dir, si.norm) /
+				math.PI /
+				p \
 		)
 	case Metallic:
 		return(
@@ -164,15 +147,24 @@ generateImage :: proc(#by_ptr s: Scene) {
 		for x in 0 ..< s.w {
 			c = {0, 0, 0}
 			for _ in 0 ..< s.samples {
-				c += raytraceScene(s, generateRay(s, x, y, randF32(), randF32()), 0)
+				c += raytraceScene(s, generateRay(s, x, y), 0)
 			}
 			s.data[s.w * y + x] = ColorToSave(c / f32(s.samples))
 		}
 	}
 }
 
+deleteSamplers :: proc(s: Sampler) {
+	if t, ok := s.(MixSampler); ok {
+		for &x in t.samplers {
+			deleteSamplers(x)
+		}
+		delete(t.samplers)
+	}
+}
+
 destroyScene :: proc(s: Scene) {
-	delete(s.lights)
+	deleteSamplers(s.sampler)
 	delete(s.objects)
 	delete(s.data)
 }
