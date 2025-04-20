@@ -19,16 +19,16 @@ readF32 :: #force_inline proc(n: ^f32, #by_ptr s: string) {
 }
 
 read3F32 :: #force_inline proc(n: ^Vec3f, s: []string) {
-	readF32(&n[0], s[1])
-	readF32(&n[1], s[2])
-	readF32(&n[2], s[3])
+	readF32(&n[0], s[0])
+	readF32(&n[1], s[1])
+	readF32(&n[2], s[2])
 }
 
 read4F32 :: #force_inline proc(n: ^[4]f32, s: []string) {
-	readF32(&n[0], s[1])
-	readF32(&n[1], s[2])
-	readF32(&n[2], s[3])
-	readF32(&n[3], s[4])
+	readF32(&n[0], s[0])
+	readF32(&n[1], s[1])
+	readF32(&n[2], s[2])
+	readF32(&n[3], s[3])
 }
 
 getScene :: proc(#by_ptr file: string) -> Scene {
@@ -55,12 +55,12 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 		temp := strings.split(line, " ")
 		defer delete(temp)
 
-		t := slice.filter(temp, proc(#by_ptr str: string) -> bool {return len(str) > 0})
+		t := slice.filter(temp, proc(str: string) -> bool {return len(str) > 0}) 	// BUG: if add #by_ptr then sometimes crash on last line
 		defer delete(t)
 
 		if newPrimitive {
 			if t[0] == "EMISSION" {
-				read3F32(&object.emm, t)
+				read3F32(&object.emm, t[1:])
 				continue
 			}
 			if t[0] == "METALLIC" {
@@ -82,14 +82,14 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 				continue
 			}
 			if t[0] == "PLANE" {
-				read3F32(&vBuf, t)
+				read3F32(&vBuf, t[1:])
 				object.shape = Plane {
 					norm = vBuf,
 				}
 				continue
 			}
 			if t[0] == "ELLIPSOID" {
-				read3F32(&vBuf, t)
+				read3F32(&vBuf, t[1:])
 				object.shape = Ellips {
 					r   = vBuf,
 					rot = quaternion(x = 0, y = 0, z = 0, w = 1),
@@ -97,7 +97,7 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 				continue
 			}
 			if t[0] == "BOX" {
-				read3F32(&vBuf, t)
+				read3F32(&vBuf, t[1:])
 				object.shape = Box {
 					dim = vBuf,
 					rot = quaternion(x = 0, y = 0, z = 0, w = 1),
@@ -105,15 +105,15 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 				continue
 			}
 			if t[0] == "COLOR" {
-				read3F32(&object.color, t)
+				read3F32(&object.color, t[1:])
 				continue
 			}
 			if t[0] == "POSITION" {
-				read3F32(&object.pos, t)
+				read3F32(&object.pos, t[1:])
 				continue
 			}
 			if t[0] == "ROTATION" {
-				read4F32(&qBuf, t)
+				read4F32(&qBuf, t[1:])
 				switch shape in object.shape {
 				case Ellips:
 					object.shape = Ellips {
@@ -160,23 +160,23 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 			continue
 		}
 		if t[0] == "BG_COLOR" {
-			read3F32(&s.bg, t)
+			read3F32(&s.bg, t[1:])
 			continue
 		}
 		if t[0] == "CAMERA_POSITION" {
-			read3F32(&s.cam.pos, t)
+			read3F32(&s.cam.pos, t[1:])
 			continue
 		}
 		if t[0] == "CAMERA_RIGHT" {
-			read3F32(&s.cam.right, t)
+			read3F32(&s.cam.right, t[1:])
 			continue
 		}
 		if t[0] == "CAMERA_UP" {
-			read3F32(&s.cam.up, t)
+			read3F32(&s.cam.up, t[1:])
 			continue
 		}
 		if t[0] == "CAMERA_FORWARD" {
-			read3F32(&s.cam.forward, t)
+			read3F32(&s.cam.forward, t[1:])
 			continue
 		}
 		if t[0] == "CAMERA_FOV_X" {
