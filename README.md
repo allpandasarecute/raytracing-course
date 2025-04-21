@@ -1,6 +1,6 @@
 # raytracing-course
 
-### Practice 3
+### Practice 4
 | Example 1 | Example 2 |
 | -------------- | --------------- |
 | ![Practice 4 example 1](images/pr4_1.png) | ![Practice 4 example 2](images/pr4_2.png) |
