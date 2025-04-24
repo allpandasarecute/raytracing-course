@@ -104,6 +104,15 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 				}
 				continue
 			}
+			if t[0] == "TRIANGLE" {
+				triangle: Triangle
+				triangle.rot = quaternion(x = 0, y = 0, z = 0, w = 1)
+				read3F32(&triangle.p1, t[1:])
+				read3F32(&triangle.p2, t[4:])
+				read3F32(&triangle.p3, t[7:])
+				object.shape = triangle
+				continue
+			}
 			if t[0] == "COLOR" {
 				read3F32(&object.color, t[1:])
 				continue
@@ -125,6 +134,14 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 						dim = shape.dim,
 						rot = quaternion(x = qBuf[0], y = qBuf[1], z = qBuf[2], w = qBuf[3]),
 					}
+				case Triangle:
+					tri := object.shape.(Triangle)
+					object.shape = Triangle {
+						tri.p1,
+						tri.p2,
+						tri.p3,
+						quaternion(x = qBuf[0], y = qBuf[1], z = qBuf[2], w = qBuf[3]),
+					}
 				case Plane:
 					panic("Wrong command for PLANE shape")
 				case:
@@ -134,8 +151,10 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 			}
 			newPrimitive = false
 			append(&s.objects, object)
-			if object.emm != {0, 0, 0} && type_of(object.shape) == Box ||
-			   type_of(object.shape) == Ellips {
+			if object.emm != {0, 0, 0} &&
+			   (type_of(object.shape) == Box ||
+					   type_of(object.shape) == Ellips ||
+					   type_of(object.shape) == Triangle) {
 				append(&samplers, LightSampler{object})
 			}
 			object = Object {
@@ -188,8 +207,10 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 	}
 	if newPrimitive {
 		append(&s.objects, object)
-		if object.emm != {0, 0, 0} && type_of(object.shape) == Box ||
-		   type_of(object.shape) == Ellips {
+		if object.emm != {0, 0, 0} &&
+		   (type_of(object.shape) == Box ||
+				   type_of(object.shape) == Ellips ||
+				   type_of(object.shape) == Triangle) {
 			append(&samplers, LightSampler{object})
 		}
 	}

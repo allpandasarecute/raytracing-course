@@ -123,7 +123,7 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 		}
 
 		cos2 := math.sqrt(1 - sin2 * sin2)
-		refractedDir := normalize((p1 / p2) * ray.dir - (p1 / p2 * d + cos2) * si.norm)
+		refractedDir := normalize(refract(ray.dir, si.norm, p1 / p2))
 		refractedRay := getRay(movePoint(whereInter, -si.norm), refractedDir)
 		refractedColor := raytraceScene(s, refractedRay, depth + 1)
 
