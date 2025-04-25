@@ -10,7 +10,8 @@ main :: proc() {
 	defer delete(os.args)
 
 	s := getScene(os.args[1])
-	generateImage(s)
+	// generateImage(s)
+	generateImageMultiThread(&s)
 	saveImage(s, os.args[2])
 	destroyScene(s)
 }

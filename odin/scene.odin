@@ -1,10 +1,6 @@
 package main
 
-import "core:bufio"
 import "core:math"
-import "core:os"
-import "core:slice"
-import "core:strings"
 
 Camera :: struct {
 	pos, right, up, forward: Vec3f,
@@ -12,41 +8,19 @@ Camera :: struct {
 }
 
 Scene :: struct {
-	data:     [dynamic]ColorSave,
-	w, h:     u64,
-	cam:      Camera,
-	bg:       Color,
-	raydepth: u64,
-	samples:  u64,
-	objects:  [dynamic]Object,
-	sampler:  Sampler,
+	data:                 [dynamic]ColorSave,
+	w, h, xTiles, yTiles: u64,
+	cam:                  Camera,
+	bg:                   Color,
+	raydepth:             u64,
+	samples:              u64,
+	objects:              [dynamic]Object,
+	sampler:              Sampler,
 }
 
 SceneIntersection :: struct {
 	using _:  Intersection,
 	objIndex: int,
-}
-
-saveImage :: proc(#by_ptr s: Scene, #by_ptr file: string) {
-	f, e := os.open(file, os.O_CREATE | os.O_WRONLY, 0o644)
-	defer os.close(f)
-
-	w: bufio.Writer
-	bufio.writer_init(&w, os.stream_from_handle(f), 4096)
-	defer bufio.writer_destroy(&w)
-	defer bufio.writer_flush(&w)
-
-	b := strings.builder_make()
-	defer strings.builder_destroy(&b)
-
-	strings.write_string(&b, "P6\n")
-	strings.write_u64(&b, s.w)
-	strings.write_string(&b, " ")
-	strings.write_u64(&b, s.h)
-	strings.write_string(&b, "\n255\n")
-
-	bufio.writer_write_string(&w, strings.to_string(b))
-	bufio.writer_write(&w, slice.bytes_from_ptr(&s.data[0], len(s.data) * size_of(ColorSave)))
 }
 
 generateRay :: proc(#by_ptr s: Scene, x, y: u64) -> Ray {
@@ -138,19 +112,6 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 		return s.objects[si.objIndex].emm + refractedColor
 	case:
 		panic("Not initialized object material")
-	}
-}
-
-generateImage :: proc(#by_ptr s: Scene) {
-	c: Color
-	for y in 0 ..< s.h {
-		for x in 0 ..< s.w {
-			c = {0, 0, 0}
-			for _ in 0 ..< s.samples {
-				c += raytraceScene(s, generateRay(s, x, y), 0)
-			}
-			s.data[s.w * y + x] = ColorToSave(c / f32(s.samples))
-		}
 	}
 }
 

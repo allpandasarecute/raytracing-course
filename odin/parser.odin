@@ -36,8 +36,8 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 	data, ok := os.read_entire_file(file)
 	assert(ok, "Can't read scene file")
 	defer delete(data)
+
 	samplers: [dynamic]Sampler
-	defer delete(samplers)
 
 	newPrimitive := false
 	object := Object {
@@ -168,6 +168,9 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 		if t[0] == "DIMENSIONS" {
 			readU64(&s.w, t[1])
 			readU64(&s.h, t[2])
+
+			s.xTiles = u64(math.ceil(f32(s.w) / f32(TILE_SIZE)))
+			s.yTiles = u64(math.ceil(f32(s.h) / f32(TILE_SIZE)))
 			continue
 		}
 		if t[0] == "RAY_DEPTH" {
@@ -218,7 +221,7 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 
 	if len(samplers) > 0 {
 		fin := MixSampler{}
-		append(&fin.samplers, MixSampler{make([dynamic]Sampler, len(samplers))}, CosineSampler{})
+		append(&fin.samplers, MixSampler{samplers}, CosineSampler{})
 		s.sampler = fin
 	} else {
 		s.sampler = CosineSampler{}
