@@ -16,3 +16,4 @@ inverse :: linalg.inverse
 
 rotate :: linalg.quaternion_mul_vector3
 refract :: linalg.refract
+reflect :: linalg.reflect

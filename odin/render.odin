@@ -2,27 +2,29 @@ package main
 
 import "core:bufio"
 import "core:math"
+import "core:math/rand"
 import "core:os"
 import "core:slice"
 import "core:strings"
 import "core:sync"
 import "core:thread"
 
-TILE_SIZE :: 32
+processTile :: proc(m: ^sync.Mutex, s: ^Scene, q: ^u64) {
+	state := rand.create(randU64())
+	context.random_generator = rand.default_random_generator(&state)
 
-processTile :: proc(m: ^sync.Mutex, s: ^Scene, q: ^[dynamic]Vec2u) {
+	i: Vec2u
 	for {
 		sync.mutex_lock(m)
-		i, ok := pop_front_safe(q)
+		i = Vec2u{q^ % s.xTiles, q^ / s.xTiles}
+		q^ += 1
 		sync.mutex_unlock(m)
 
-		if !ok {
-			break
-		}
+		(i.y < s.yTiles) or_break
 
 		c: Color
-		for y in (i.y - 1) * TILE_SIZE ..< min(i.y * TILE_SIZE, s.h) {
-			for x in (i.x - 1) * TILE_SIZE ..< min(i.x * TILE_SIZE, s.w) {
+		for x in i.x * s.tileSize ..< min((i.x + 1) * s.tileSize, s.w) {
+			for y in i.y * s.tileSize ..< min((i.y + 1) * s.tileSize, s.h) {
 				c = {0, 0, 0}
 				for _ in 0 ..< s.samples {
 					c += raytraceScene(s^, generateRay(s^, x, y), 0)
@@ -31,16 +33,6 @@ processTile :: proc(m: ^sync.Mutex, s: ^Scene, q: ^[dynamic]Vec2u) {
 			}
 		}
 	}
-}
-
-create_queue :: #force_inline proc(s: ^Scene) -> (q: [dynamic]Vec2u) {
-	q = make([dynamic]Vec2u, 0, s.xTiles * s.yTiles)
-	for x in 1 ..= s.xTiles {
-		for y in 1 ..= s.yTiles {
-			append(&q, Vec2u{x, y})
-		}
-	}
-	return
 }
 
 generateImage :: proc(#by_ptr s: Scene) {
@@ -64,8 +56,7 @@ generateImageMultiThread :: proc(s: ^Scene) {
 	threads := make([]^thread.Thread, MAX_THREADS)
 	defer delete(threads)
 
-	q := create_queue(s)
-	defer delete(q)
+	q: u64 = 0
 
 	for i in 0 ..< len(threads) {
 		threads[i] = thread.create_and_start_with_poly_data3(&m, s, &q, processTile)

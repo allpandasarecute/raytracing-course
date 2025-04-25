@@ -18,6 +18,10 @@ randU64Max :: #force_inline proc(x: u64) -> u64 {
 	return rand.uint64() % x
 }
 
+randU64 :: #force_inline proc() -> u64 {
+	return rand.uint64()
+}
+
 generateRandDir :: proc() -> Vec3f {
 	v := Vec3f{randF32Dir(), randF32Dir(), randF32Dir()}
 	l := length(v)

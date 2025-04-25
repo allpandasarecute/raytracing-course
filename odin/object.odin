@@ -83,13 +83,16 @@ intersectTriangle :: proc(#by_ptr o: Object, #by_ptr ray: Ray) -> Maybe(Intersec
 		c1.y, c2.y, c3.y, 
 		c1.z, c2.z, c3.z, 
 	}
+
 	ans := mul(inverse(m), c4) // (u, v, t)
-	if ans.x >= 0 && ans.y >= 0 && ans.x + ans.y <= 1 && ans.z >= 0 {
-		norm := normalize(rotate(tri.rot, cross(c1, c2)))
-		isInside := (dot(newDir, norm) > 0)
-		return Intersection{ans.z, -norm if isInside else norm, isInside}
+
+	if ans.x < 0 || ans.y < 0 || ans.x + ans.y > 1 || ans.z < 0 {
+		return nil
 	}
-	return nil
+
+	norm := normalize(rotate(tri.rot, cross(c1, c2)))
+	isInside := (dot(newDir, norm) > 0)
+	return Intersection{ans.z, -norm if isInside else norm, isInside}
 }
 
 intersectEllips :: proc(#by_ptr o: Object, #by_ptr ray: Ray) -> Maybe(Intersection) {

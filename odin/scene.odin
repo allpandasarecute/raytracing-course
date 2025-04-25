@@ -8,14 +8,16 @@ Camera :: struct {
 }
 
 Scene :: struct {
-	data:                 [dynamic]ColorSave,
-	w, h, xTiles, yTiles: u64,
-	cam:                  Camera,
-	bg:                   Color,
-	raydepth:             u64,
-	samples:              u64,
-	objects:              [dynamic]Object,
-	sampler:              Sampler,
+	data:           []ColorSave,
+	w, h:           u64,
+	xTiles, yTiles: u64,
+	tileSize:       u64,
+	cam:            Camera,
+	bg:             Color,
+	raydepth:       u64,
+	samples:        u64,
+	objects:        [dynamic]Object,
+	sampler:        Sampler,
 }
 
 SceneIntersection :: struct {
@@ -55,8 +57,8 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 
 	switch mat in s.objects[si.objIndex].mat {
 	case Diffuse:
-		dir := sample(s.sampler, movePoint(whereInter, si.norm), si.norm)
-		p := pdf(s.sampler, movePoint(whereInter, si.norm), si.norm, dir)
+		dir: Vec3f
+		p: f32 = -1
 		for p < 0 {
 			dir = sample(s.sampler, movePoint(whereInter, si.norm), si.norm)
 			p = pdf(s.sampler, movePoint(whereInter, si.norm), si.norm, dir)
@@ -75,16 +77,13 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 			s.objects[si.objIndex].color *
 				raytraceScene(
 					s,
-					getRay(
-						movePoint(whereInter, si.norm),
-						ray.dir - 2 * dot(ray.dir, si.norm) * si.norm,
-					),
+					getRay(movePoint(whereInter, si.norm), reflect(ray.dir, si.norm)),
 					depth + 1,
 				) \
 		)
 	case Dielectric:
 		d := dot(si.norm, ray.dir)
-		reflectedDir := ray.dir - 2 * d * si.norm
+		reflectedDir := reflect(ray.dir, si.norm)
 		reflectedRay := getRay(movePoint(whereInter, si.norm), reflectedDir)
 		reflectedColor := raytraceScene(s, reflectedRay, depth + 1)
 
@@ -97,7 +96,7 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 		}
 
 		cos2 := math.sqrt(1 - sin2 * sin2)
-		refractedDir := normalize(refract(ray.dir, si.norm, p1 / p2))
+		refractedDir := refract(ray.dir, si.norm, p1 / p2)
 		refractedRay := getRay(movePoint(whereInter, -si.norm), refractedDir)
 		refractedColor := raytraceScene(s, refractedRay, depth + 1)
 
@@ -115,17 +114,17 @@ raytraceScene :: proc(#by_ptr s: Scene, #by_ptr ray: Ray, depth: u64) -> Color {
 	}
 }
 
-deleteSamplers :: proc(s: Sampler) {
+deleteSampler :: proc(s: Sampler) {
 	if t, ok := s.(MixSampler); ok {
 		for &x in t.samplers {
-			deleteSamplers(x)
+			deleteSampler(x)
 		}
 		delete(t.samplers)
 	}
 }
 
 destroyScene :: proc(s: Scene) {
-	deleteSamplers(s.sampler)
+	deleteSampler(s.sampler)
 	delete(s.objects)
 	delete(s.data)
 }

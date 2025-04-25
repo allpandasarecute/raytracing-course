@@ -34,10 +34,12 @@ read4F32 :: #force_inline proc(n: ^[4]f32, s: []string) {
 getScene :: proc(#by_ptr file: string) -> Scene {
 	s: Scene
 	data, ok := os.read_entire_file(file)
-	assert(ok, "Can't read scene file")
 	defer delete(data)
+	assert(ok, "Can't read scene file")
 
 	samplers: [dynamic]Sampler
+
+	s.tileSize = 16
 
 	newPrimitive := false
 	object := Object {
@@ -48,9 +50,7 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 	it := string(data)
 	for line in strings.split_lines_iterator(&it) {
 		line := strings.trim_space(line)
-		if line == "" {
-			continue
-		}
+		(line != "") or_continue
 
 		temp := strings.split(line, " ")
 		defer delete(temp)
@@ -169,8 +169,8 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 			readU64(&s.w, t[1])
 			readU64(&s.h, t[2])
 
-			s.xTiles = u64(math.ceil(f32(s.w) / f32(TILE_SIZE)))
-			s.yTiles = u64(math.ceil(f32(s.h) / f32(TILE_SIZE)))
+			s.xTiles = u64(math.ceil(f32(s.w) / f32(s.tileSize)))
+			s.yTiles = u64(math.ceil(f32(s.h) / f32(s.tileSize)))
 			continue
 		}
 		if t[0] == "RAY_DEPTH" {
@@ -217,7 +217,7 @@ getScene :: proc(#by_ptr file: string) -> Scene {
 			append(&samplers, LightSampler{object})
 		}
 	}
-	resize(&s.data, s.w * s.h)
+	s.data = make([]ColorSave, s.w * s.h)
 
 	if len(samplers) > 0 {
 		fin := MixSampler{}
